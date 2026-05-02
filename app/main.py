@@ -23,12 +23,6 @@ templates = Jinja2Templates(directory="templates")
 templates.env.globals['min'] = min
 templates.env.globals['max'] = max
 
-app.include_router(members.router)
-app.include_router(transactions.router)
-app.include_router(needs.router)
-app.include_router(governance.router)
-
-
 @app.get("/", response_class=HTMLResponse)
 def dashboard(request: Request, db: Session = Depends(get_db)):
     total_members = db.query(models.Member).filter(models.Member.status == "active").count()
@@ -200,3 +194,10 @@ def skills_page(request: Request, db: Session = Depends(get_db)):
         "wants": wants,
         "members": members
     })
+
+
+# Include API routers AFTER HTML page routes so page routes take precedence
+app.include_router(members.router)
+app.include_router(transactions.router)
+app.include_router(needs.router)
+app.include_router(governance.router)
