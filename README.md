@@ -19,6 +19,29 @@ A web application for implementing a time-based economy in small communities (5-
 - **Skills Matching**: Automatic identification of skill/want matches
 - **System Health Metrics**: Monitor liquidity, velocity, and circulation
 
+## Screenshots
+
+### Dashboard
+![Dashboard](screenshots/01_dashboard.png)
+
+### Members
+![Members](screenshots/02_members.png)
+
+### Member Detail
+![Member Detail](screenshots/03_member_detail.png)
+
+### Transactions
+![Transactions](screenshots/04_transactions.png)
+
+### Needs & Offers
+![Needs](screenshots/05_needs.png)
+
+### Skills Directory
+![Skills](screenshots/06_skills.png)
+
+### Governance Log
+![Governance](screenshots/07_governance.png)
+
 ## Quick Start
 
 ### Option 1: Docker (Recommended)
