@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Needs - Time Economy{% endblock %}
+
+{% block content %}
+<div class="mb-8 flex justify-between items-end">
+    <div>
+        <h1 class="text-3xl font-extrabold text-stone-900 mb-2">Needs & Offers</h1>
+        <p class="text-stone-600">Community requests and available services.</p>
+    </div>
+    <button onclick="document.getElementById('add-need-modal').classList.remove('hidden')" class="btn-primary">
+        + Post Need
+    </button>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for need in needs %}
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-100 card-hover">
+        <div class="flex items-start justify-between mb-3">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center text-sm font-bold text-teal-700">
+                    {{ need.member.name[0] if need.member else '?' }}
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-stone-900">{{ need.member.name if need.member else 'Unknown' }}</p>
+                    <p class="text-xs text-stone-400">{{ need.created_at.strftime('%b %d') }}</p>
+                </div>
+            </div>
+            <span class="px-2 py-1 rounded-full text-xs font-medium status-{{ need.status }}">{{ need.status }}</span>
+        </div>
+
+        <h3 class="text-lg font-bold text-stone-800 mb-2">{{ need.title }}</h3>
+        <p class="text-sm text-stone-600 mb-4">{{ need.description }}</p>
+
+        <div class="flex items-center justify-between mb-4">
+            <span class="text-sm text-stone-500">Estimated: <span class="font-mono font-bold">{{ need.hours_estimated }} hrs</span></span>
+        </div>
+
+        {% if need.status == 'open' %}
+        <form action="/needs/{{ need.id }}/fulfill-web" method="post">
+            <button type="submit" class="w-full py-2 btn-secondary text-center">Fulfill Need</button>
+        </form>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+<div id="add-need-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6">
+        <h2 class="text-xl font-bold text-stone-900 mb-4">Post a Need</h2>
+        <form action="/needs/web-create" method="post">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-stone-700 mb-1">Requested By</label>
+                    <select name="member_id" required class="w-full border border-stone-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none">
+                        <option value="">Select member...</option>
+                        {% for m in members %}
+                        <option value="{{ m.id }}">{{ m.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-stone-700 mb-1">Title</label>
+                    <input type="text" name="title" required class="w-full border border-stone-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-stone-700 mb-1">Description</label>
+                    <textarea name="description" required rows="3" class="w-full border border-stone-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-stone-700 mb-1">Estimated Hours</label>
+                    <input type="number" name="hours_estimated" step="0.5" min="0.5" value="1.0" class="w-full border border-stone-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none">
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button type="button" onclick="document.getElementById('add-need-modal').classList.add('hidden')" class="flex-1 py-2 border border-stone-300 rounded-lg text-stone-600 hover:bg-stone-50">Cancel</button>
+                <button type="submit" class="flex-1 py-2 btn-primary">Post Need</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

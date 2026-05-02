@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Transactions - Time Economy{% endblock %}
+
+{% block content %}
+<div class="mb-8 flex justify-between items-end">
+    <div>
+        <h1 class="text-3xl font-extrabold text-stone-900 mb-2">Transactions</h1>
+        <p class="text-stone-600">Log and manage time credit exchanges.</p>
+    </div>
+    <button onclick="document.getElementById('add-tx-modal').classList.remove('hidden')" class="btn-primary">
+        + New Transaction
+    </button>
+</div>
+
+<div class="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-stone-50">
+                <tr class="text-left text-stone-500">
+                    <th class="px-6 py-3 font-semibold">Date</th>
+                    <th class="px-6 py-3 font-semibold">From</th>
+                    <th class="px-6 py-3 font-semibold">To</th>
+                    <th class="px-6 py-3 font-semibold">Service</th>
+                    <th class="px-6 py-3 font-semibold">Hours</th>
+                    <th class="px-6 py-3 font-semibold">Status</th>
+                    <th class="px-6 py-3 font-semibold">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-stone-100">
+                {% for tx in transactions %}
+                <tr class="hover:bg-stone-50 transition-colors">
+                    <td class="px-6 py-4 text-stone-500">{{ tx.created_at.strftime('%b %d') }}</td>
+                    <td class="px-6 py-4 font-medium">{{ tx.from_member.name if tx.from_member else 'Unknown' }}</td>
+                    <td class="px-6 py-4 font-medium">{{ tx.to_member.name if tx.to_member else 'Unknown' }}</td>
+                    <td class="px-6 py-4 text-stone-600">{{ tx.service_description }}</td>
+                    <td class="px-6 py-4 font-mono font-bold">{{ tx.hours }}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 rounded-full text-xs font-medium status-{{ tx.status }}">{{ tx.status }}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if tx.status == 'pending' %}
+                        <form action="/transactions/{{ tx.id }}/complete-web" method="post" class="inline">
+                            <button type="submit" class="text-xs btn-primary btn-sm mr-2">Complete</button>
+                        </form>
+                        {% endif %}
+                        {% if tx.status != 'disputed' %}
+                        <form action="/transactions/{{ tx.id }}/dispute" method="post" class="inline">
+                            <button type="submit" class="text-xs bg-red-50 text-red-600 hover:bg-red-100 px-2 py-1 rounded-lg font-medium transition-colors">Dispute</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="add-tx-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6">
+        <h2 class="text-xl font-bold text-stone-900 mb-4">New Transaction</h2>
+        <form action="/transactions/web-create" method="post">
+            <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-stone-700 mb-1">From (Provider)</label>
+                        <select name="from_member_id" required class="w-full border border-stone-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none">
+                            <option value="">Select...</option>
+                            {% for m in members %}
+                            <option value="{{ m.id }}">{{ m.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-stone-700 mb-1">To (Recipient)</label>
+                        <select name="to_member_id" required class="w-full border border-stone-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none">
+                            <option value="">Select...</option>
+                            {% for m in members %}
+                            <option value="{{ m.id }}">{{ m.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-stone-700 mb-1">Hours</label>
+                    <input type="number" name="hours" step="0.5" min="0.5" required class="w-full border border-stone-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-stone-700 mb-1">Service Description</label>
+                    <textarea name="service_description" required rows="2" class="w-full border border-stone-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-stone-700 mb-1">Notes (optional)</label>
+                    <textarea name="notes" rows="2" class="w-full border border-stone-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none"></textarea>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button type="button" onclick="document.getElementById('add-tx-modal').classList.add('hidden')" class="flex-1 py-2 border border-stone-300 rounded-lg text-stone-600 hover:bg-stone-50">Cancel</button>
+                <button type="submit" class="flex-1 py-2 btn-primary">Create Transaction</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

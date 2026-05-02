@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}{{ member.name }} - Time Economy{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <a href="/members" class="text-sm text-teal-700 hover:underline">&larr; Back to Members</a>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div class="lg:col-span-1">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
+            <div class="flex items-center gap-4 mb-6">
+                <div class="w-16 h-16 rounded-full bg-teal-100 flex items-center justify-center text-2xl font-bold text-teal-700">
+                    {{ member.name[0] }}
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-stone-900">{{ member.name }}</h1>
+                    <p class="text-sm text-stone-500">{{ member.email }}</p>
+                    {% if member.phone %}<p class="text-sm text-stone-400">{{ member.phone }}</p>{% endif %}
+                </div>
+            </div>
+
+            <div class="mb-6 p-4 bg-stone-50 rounded-xl">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm text-stone-600">Current Balance</span>
+                    <span class="text-2xl font-mono font-bold {% if member.balance > 20 %}text-amber-600{% elif member.balance < -10 %}text-red-600{% else %}text-teal-700{% endif %}">
+                        {{ "%.2f"|format(member.balance) }}
+                    </span>
+                </div>
+                <div class="w-full bg-stone-200 rounded-full h-2">
+                    <div class="h-2 rounded-full {% if member.balance > 20 %}bg-amber-500{% elif member.balance < -10 %}bg-red-500{% else %}bg-teal-600{% endif %}"
+                        style="width: {{ min(max((member.balance + 15) / 35 * 100, 5), 100) }}%">
+                    </div>
+                </div>
+                <p class="text-xs text-stone-400 mt-2">Initial credit: +{{ member.initial_credit }}</p>
+            </div>
+
+            {% if member.bio %}
+            <div class="mb-6">
+                <h3 class="text-sm font-semibold text-stone-500 uppercase tracking-wide mb-2">Bio</h3>
+                <p class="text-sm text-stone-700">{{ member.bio }}</p>
+            </div>
+            {% endif %}
+
+            <div class="mb-6">
+                <h3 class="text-sm font-semibold text-stone-500 uppercase tracking-wide mb-2">Joined</h3>
+                <p class="text-sm text-stone-700">{{ member.joined_at.strftime('%B %d, %Y') }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="lg:col-span-2 space-y-8">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold text-stone-800">Skills Offered</h2>
+                <button onclick="document.getElementById('add-skill-modal').classList.remove('hidden')" class="btn-sm btn-primary">+ Add</button>
+            </div>
+            {% if member.skills_offered %}
+            <div class="flex flex-wrap gap-2">
+                {% for skill in member.skills_offered %}
+                <div class="px-3 py-2 bg-teal-50 text-teal-700 rounded-lg text-sm">
+                    <span class="font-semibold">{{ skill.name }}</span>
+                    {% if skill.category %}<span class="text-teal-500">| {{ skill.category }}</span>{% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-sm text-stone-400">No skills added yet.</p>
+            {% endif %}
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold text-stone-800">Skills Wanted</h2>
+                <button onclick="document.getElementById('add-want-modal').classList.remove('hidden')" class="btn-sm btn-primary">+ Add</button>
+            </div>
+            {% if member.skills_wanted %}
+            <div class="flex flex-wrap gap-2">
+                {% for want in member.skills_wanted %}
+                <div class="px-3 py-2 bg-amber-50 text-amber-700 rounded-lg text-sm font-semibold">
+                    {{ want.name }}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-sm text-stone-400">No wants added yet.</p>
+            {% endif %}
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
+            <h2 class="text-lg font-bold text-stone-800 mb-4">Transaction History</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-left text-stone-500 border-b border-stone-100">
+                            <th class="pb-2">Type</th>
+                            <th class="pb-2">With</th>
+                            <th class="pb-2">Service</th>
+                            <th class="pb-2">Hours</th>
+                            <th class="pb-2">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-stone-50">
+                        {% for tx in tx_given %}
+                        <tr class="hover:bg-stone-50">
+                            <td class="py-2"><span class="text-red-500 font-medium">Gave</span></td>
+                            <td class="py-2">{{ tx.to_member.name if tx.to_member else 'Unknown' }}</td>
+                            <td class="py-2 text-stone-600">{{ tx.service_description[:25] }}{% if tx.service_description|length > 25 %}...{% endif %}</td>
+                            <td class="py-2 font-mono">-{{ tx.hours }}</td>
+                            <td class="py-2"><span class="px-2 py-0.5 rounded-full text-xs status-{{ tx.status }}">{{ tx.status }}</span></td>
+                        </tr>
+                        {% endfor %}
+                        {% for tx in tx_received %}
+                        <tr class="hover:bg-stone-50">
+                            <td class="py-2"><span class="text-teal-600 font-medium">Received</span></td>
+                            <td class="py-2">{{ tx.from_member.name if tx.from_member else 'Unknown' }}</td>
+                            <td class="py-2 text-stone-600">{{ tx.service_description[:25] }}{% if tx.service_description|length > 25 %}...{% endif %}</td>
+                            <td class="py-2 font-mono">+{{ tx.hours }}</td>
+                            <td class="py-2"><span class="px-2 py-0.5 rounded-full text-xs status-{{ tx.status }}">{{ tx.status }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="add-skill-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+        <h2 class="text-xl font-bold text-stone-900 mb-4">Add Skill</h2>
+        <form action="/members/{{ member.id }}/skills-web" method="post">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-stone-700 mb-1">Skill Name</label>
+                    <input type="text" name="name" required class="w-full border border-stone-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-stone-700 mb-1">Category (optional)</label>
+                    <input type="text" name="category" class="w-full border border-stone-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-stone-700 mb-1">Description (optional)</label>
+                    <textarea name="description" rows="2" class="w-full border border-stone-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none"></textarea>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button type="button" onclick="document.getElementById('add-skill-modal').classList.add('hidden')" class="flex-1 py-2 border border-stone-300 rounded-lg text-stone-600 hover:bg-stone-50">Cancel</button>
+                <button type="submit" class="flex-1 py-2 btn-primary">Add Skill</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="add-want-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+        <h2 class="text-xl font-bold text-stone-900 mb-4">Add Want</h2>
+        <form action="/members/{{ member.id }}/wants-web" method="post">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-stone-700 mb-1">What do you need?</label>
+                    <input type="text" name="name" required class="w-full border border-stone-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-stone-700 mb-1">Description (optional)</label>
+                    <textarea name="description" rows="2" class="w-full border border-stone-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none"></textarea>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button type="button" onclick="document.getElementById('add-want-modal').classList.add('hidden')" class="flex-1 py-2 border border-stone-300 rounded-lg text-stone-600 hover:bg-stone-50">Cancel</button>
+                <button type="submit" class="flex-1 py-2 btn-primary">Add Want</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

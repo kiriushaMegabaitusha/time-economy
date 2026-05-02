@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Skills - Time Economy{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-3xl font-extrabold text-stone-900 mb-2">Skills Directory</h1>
+    <p class="text-stone-600">All skills offered and wanted across the community.</p>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
+        <h2 class="text-lg font-bold text-teal-700 mb-4 flex items-center gap-2">
+            <span>&#x2705;</span> Skills Offered
+        </h2>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="text-left text-stone-500 border-b border-stone-100">
+                        <th class="pb-2">Member</th>
+                        <th class="pb-2">Skill</th>
+                        <th class="pb-2">Category</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-stone-50">
+                    {% for skill in skills %}
+                    <tr class="hover:bg-stone-50">
+                        <td class="py-2 font-medium">{{ skill.member.name if skill.member else 'Unknown' }}</td>
+                        <td class="py-2">
+                            <span class="px-2 py-1 bg-teal-50 text-teal-700 rounded text-xs font-semibold">{{ skill.name }}</span>
+                        </td>
+                        <td class="py-2 text-stone-500">{{ skill.category or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
+        <h2 class="text-lg font-bold text-amber-700 mb-4 flex items-center gap-2">
+            <span>&#x1F4E1;</span> Skills Wanted
+        </h2>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="text-left text-stone-500 border-b border-stone-100">
+                        <th class="pb-2">Member</th>
+                        <th class="pb-2">Want</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-stone-50">
+                    {% for want in wants %}
+                    <tr class="hover:bg-stone-50">
+                        <td class="py-2 font-medium">{{ want.member.name if want.member else 'Unknown' }}</td>
+                        <td class="py-2">
+                            <span class="px-2 py-1 bg-amber-50 text-amber-700 rounded text-xs font-semibold">{{ want.name }}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="mt-8 bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
+    <h2 class="text-lg font-bold text-stone-800 mb-4">Potential Matches</h2>
+    <div id="matches-container" class="space-y-3">
+        <p class="text-sm text-stone-500">Analyzing skills and wants for potential matches...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const skills = {{ skills|map(attribute='name')|list|tojson }};
+    const wants = {{ wants|map(attribute='name')|list|tojson }};
+    const skillsData = {{ skills|map(attribute='name')|list|tojson }};
+    const wantsData = {{ wants|map(attribute='name')|list|tojson }};
+    
+    // Simple matching algorithm
+    const container = document.getElementById('matches-container');
+    const matches = [];
+    
+    {% for skill in skills %}
+    {% for want in wants %}
+    {% if skill.name.lower() == want.name.lower() %}
+    matches.push({
+        skill: '{{ skill.name }}',
+        provider: '{{ skill.member.name if skill.member else "Unknown" }}',
+        seeker: '{{ want.member.name if want.member else "Unknown" }}'
+    });
+    {% endif %}
+    {% endfor %}
+    {% endfor %}
+    
+    if (matches.length > 0) {
+        container.innerHTML = matches.map(m => `
+            <div class="flex items-center gap-3 p-3 bg-teal-50 rounded-lg border border-teal-200">
+                <span class="text-teal-600">&#x1F504;</span>
+                <div>
+                    <span class="font-medium text-stone-800">${m.provider}</span>
+                    <span class="text-stone-500"> offers </span>
+                    <span class="font-semibold text-teal-700">${m.skill}</span>
+                    <span class="text-stone-500"> &mdash; matches </span>
+                    <span class="font-medium text-stone-800">${m.seeker}</span>
+                    <span class="text-stone-500">'s need</span>
+                </div>
+            </div>
+        `).join('');
+    } else {
+        container.innerHTML = '<p class="text-sm text-stone-500">No exact matches found. Consider adding more specific skills or broader categories.</p>';
+    }
+</script>
+{% endblock %}

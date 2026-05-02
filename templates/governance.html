@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}Governance - Time Economy{% endblock %}
+
+{% block content %}
+<div class="mb-8 flex justify-between items-end">
+    <div>
+        <h1 class="text-3xl font-extrabold text-stone-900 mb-2">Governance Log</h1>
+        <p class="text-stone-600">Community decisions, meeting notes, and protocol changes.</p>
+    </div>
+    <button onclick="document.getElementById('add-gov-modal').classList.remove('hidden')" class="btn-primary">
+        + New Entry
+    </button>
+</div>
+
+<div class="space-y-4">
+    {% for entry in entries %}
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
+        <div class="flex items-start justify-between mb-3">
+            <div class="flex items-center gap-2">
+                <span class="px-2 py-1 rounded text-xs font-semibold
+                    {% if entry.decision_type == 'rule_change' %}bg-purple-100 text-purple-700
+                    {% elif entry.decision_type == 'dispute_resolution' %}bg-red-100 text-red-700
+                    {% elif entry.decision_type == 'system_upgrade' %}bg-blue-100 text-blue-700
+                    {% else %}bg-stone-100 text-stone-700{% endif %}">
+                    {{ entry.decision_type.replace('_', ' ').title() }}
+                </span>
+                <span class="px-2 py-1 rounded text-xs font-semibold
+                    {% if entry.status == 'approved' %}bg-green-100 text-green-700
+                    {% elif entry.status == 'rejected' %}bg-red-100 text-red-700
+                    {% elif entry.status == 'implemented' %}bg-teal-100 text-teal-700
+                    {% else %}bg-amber-100 text-amber-700{% endif %}">
+                    {{ entry.status.title() }}
+                </span>
+            </div>
+            <span class="text-xs text-stone-400">{{ entry.created_at.strftime('%b %d, %Y') }}</span>
+        </div>
+
+        <h3 class="text-lg font-bold text-stone-900 mb-2">{{ entry.title }}</h3>
+        <p class="text-sm text-stone-600 mb-4">{{ entry.description }}</p>
+
+        {% if entry.member %}
+        <p class="text-xs text-stone-400 mb-3">Proposed by: {{ entry.member.name }}</p>
+        {% endif %}
+
+        <div class="flex items-center gap-4">
+            <form action="/governance/{{ entry.id }}/vote-web" method="post" class="inline">
+                <input type="hidden" name="vote" value="for">
+                <button type="submit" class="text-sm text-teal-700 hover:bg-teal-50 px-3 py-1 rounded-lg transition-colors">
+                    &#x1F44D; {{ entry.vote_for }}
+                </button>
+            </form>
+            <form action="/governance/{{ entry.id }}/vote-web" method="post" class="inline">
+                <input type="hidden" name="vote" value="against">
+                <button type="submit" class="text-sm text-stone-500 hover:bg-stone-50 px-3 py-1 rounded-lg transition-colors">
+                    &#x1F44E; {{ entry.vote_against }}
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div id="add-gov-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6">
+        <h2 class="text-xl font-bold text-stone-900 mb-4">New Governance Entry</h2>
+        <form action="/governance/web-create" method="post">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-stone-700 mb-1">Decision Type</label>
+                    <select name="decision_type" required class="w-full border border-stone-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none">
+                        <option value="rule_change">Rule Change</option>
+                        <option value="dispute_resolution">Dispute Resolution</option>
+                        <option value="system_upgrade">System Upgrade</option>
+                        <option value="meeting_note">Meeting Note</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-stone-700 mb-1">Title</label>
+                    <input type="text" name="title" required class="w-full border border-stone-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-stone-700 mb-1">Description</label>
+                    <textarea name="description" required rows="4" class="w-full border border-stone-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-stone-700 mb-1">Proposed By (optional)</label>
+                    <select name="member_id" class="w-full border border-stone-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none">
+                        <option value="">Select member...</option>
+                        {% for m in members %}
+                        <option value="{{ m.id }}">{{ m.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button type="button" onclick="document.getElementById('add-gov-modal').classList.add('hidden')" class="flex-1 py-2 border border-stone-300 rounded-lg text-stone-600 hover:bg-stone-50">Cancel</button>
+                <button type="submit" class="flex-1 py-2 btn-primary">Add Entry</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
