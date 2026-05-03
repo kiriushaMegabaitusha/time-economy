@@ -1,0 +1,202 @@
+/* Time Economy TUI Styles */
+
+Screen {
+    align: center middle;
+}
+
+#main-container {
+    layout: vertical;
+    height: 100%;
+}
+
+#header {
+    height: 3;
+    background: $surface-darken-1;
+    color: $text;
+    content-align: center middle;
+    text-style: bold;
+}
+
+#nav-bar {
+    height: 1;
+    background: $surface;
+    color: $text-muted;
+    content-align: center middle;
+}
+
+#content {
+    height: 1fr;
+    padding: 1;
+}
+
+#footer {
+    height: 1;
+    background: $surface-darken-1;
+    color: $text-muted;
+    content-align: center middle;
+}
+
+/* Dashboard */
+#dashboard-grid {
+    layout: grid;
+    grid-size: 2 3;
+    grid-gutter: 1;
+    height: 100%;
+}
+
+.stat-card {
+    background: $surface-darken-1;
+    border: solid $primary;
+    padding: 1;
+    text-align: center;
+}
+
+.stat-value {
+    text-style: bold;
+    color: $primary-lighten-2;
+    text-align: center;
+}
+
+.stat-label {
+    color: $text-muted;
+    text-align: center;
+}
+
+#alerts-panel {
+    background: $surface-darken-1;
+    border: solid $warning;
+    padding: 1;
+}
+
+#recent-panel {
+    background: $surface-darken-1;
+    border: solid $primary;
+    padding: 1;
+}
+
+/* Data Tables */
+DataTable {
+    height: 100%;
+    border: solid $primary-darken-2;
+}
+
+DataTable:focus {
+    border: solid $primary;
+}
+
+/* Forms */
+.modal-form {
+    background: $surface;
+    border: thick $primary;
+    padding: 1 2;
+    width: 60;
+    height: auto;
+}
+
+.modal-form-title {
+    text-style: bold;
+    color: $primary-lighten-2;
+    text-align: center;
+    height: 1;
+    margin-bottom: 1;
+}
+
+Form Input {
+    margin-bottom: 1;
+}
+
+Form Select {
+    margin-bottom: 1;
+}
+
+/* Buttons */
+Button {
+    margin: 0 1;
+}
+
+Button.primary {
+    background: $primary;
+}
+
+Button.success {
+    background: $success;
+}
+
+Button.error {
+    background: $error;
+}
+
+/* TabbedContent */
+TabbedContent {
+    height: 100%;
+}
+
+Tabs {
+    background: $surface-darken-1;
+}
+
+/* ListView */
+ListView {
+    border: solid $primary-darken-2;
+    height: 100%;
+}
+
+ListView:focus {
+    border: solid $primary;
+}
+
+/* Scrollable containers */
+VerticalScroll {
+    height: 100%;
+    border: solid $surface-darken-2;
+}
+
+/* Alert items */
+.alert-hoarding {
+    color: $warning;
+}
+
+.alert-deficit {
+    color: $error;
+}
+
+/* Status badges */
+.status-pending {
+    color: $warning;
+}
+
+.status-completed {
+    color: $success;
+}
+
+.status-disputed {
+    color: $error;
+}
+
+.status-open {
+    color: $success;
+}
+
+.status-fulfilled {
+    color: $primary;
+}
+
+.status-closed {
+    color: $text-muted;
+}
+
+.status-proposed {
+    color: $warning;
+}
+
+.status-approved {
+    color: $success;
+}
+
+.status-rejected {
+    color: $error;
+}
+
+.status-implemented {
+    color: $primary;
+}

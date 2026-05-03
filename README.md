@@ -96,12 +96,84 @@ The application implements Stafford Beer's Viable System Model:
 
 All data is stored in a local SQLite database (`time_economy.db`). Back up this file regularly.
 
+## Terminal Interfaces (No Browser Required!)
+
+For communities without reliable internet or modern computers, we provide three terminal-based interfaces that share the same database as the web app:
+
+### 1. Rich TUI (Text User Interface)
+
+A full-screen interactive terminal application with tables, forms, and keyboard navigation.
+
+```bash
+python -m app tui
+```
+
+**Keyboard shortcuts:**
+- `d` - Dashboard
+- `m` - Members
+- `t` - Transactions
+- `n` - Needs
+- `g` - Governance
+- `s` - Skills
+- `r` - Refresh data
+- `q` - Quit
+
+### 2. Plain-Text Menu Interface
+
+A simple numbered-menu interface designed for low-tech environments. Works on any terminal, even old computers and basic Windows CMD.
+
+```bash
+python -m app cli
+```
+
+### 3. Command-Line Interface
+
+Scriptable commands for automation and quick operations.
+
+```bash
+# Dashboard
+python -m app cmd dashboard
+
+# Members
+python -m app cmd members list
+python -m app cmd members add "John Doe" "john@example.com"
+python -m app cmd members show 1
+
+# Transactions
+python -m app cmd tx list
+python -m app cmd tx create --from 1 --to 2 --hours 2.5 "Garden help"
+python -m app cmd tx complete 6
+
+# Needs
+python -m app cmd needs list
+python -m app cmd needs create --member 1 "Help moving" "Need help moving furniture" --hours 3
+
+# Governance
+python -m app cmd gov list
+python -m app cmd gov vote 1 for
+
+# Skills
+python -m app cmd skills
+```
+
+### Data Export
+
+Both terminal interfaces support exporting data for backup and sharing:
+
+- **CSV** - Open in Excel or LibreOffice Calc
+- **JSON** - Machine-readable backup
+- **Plain Text** - Printable reports
+
+Use the Export option in the menu interfaces, or access the data directly from `time_economy.db`.
+
 ## Technology Stack
 
 - **Backend**: FastAPI (Python)
 - **Database**: SQLite (via SQLAlchemy)
 - **Frontend**: Jinja2 templates with Tailwind CSS
 - **Charts**: Chart.js
+- **TUI**: Textual (Python)
+- **CLI**: Typer + Rich (Python)
 
 ## License
 
