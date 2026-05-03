@@ -151,6 +151,36 @@ def update_member_status(db: Session, member_id: int, status: str) -> Optional[M
     return member
 
 
+def update_member(db: Session, member_id: int, name: str = None, email: str = None,
+                  phone: str = None, bio: str = None, initial_credit: float = None) -> Optional[Member]:
+    """Update member details."""
+    member = db.query(Member).filter(Member.id == member_id).first()
+    if member:
+        if name is not None:
+            member.name = name
+        if email is not None:
+            member.email = email
+        if phone is not None:
+            member.phone = phone
+        if bio is not None:
+            member.bio = bio
+        if initial_credit is not None:
+            member.initial_credit = initial_credit
+        db.commit()
+        db.refresh(member)
+    return member
+
+
+def delete_member(db: Session, member_id: int) -> bool:
+    """Delete a member and all related data (skills, wants, needs, governance)."""
+    member = db.query(Member).filter(Member.id == member_id).first()
+    if member:
+        db.delete(member)
+        db.commit()
+        return True
+    return False
+
+
 def add_skill(db: Session, member_id: int, name: str, category: str = None,
               description: str = None) -> Skill:
     skill = Skill(
@@ -175,6 +205,56 @@ def add_want(db: Session, member_id: int, name: str, description: str = None) ->
     db.commit()
     db.refresh(want)
     return want
+
+
+def update_skill(db: Session, skill_id: int, name: str = None, category: str = None,
+                 description: str = None) -> Optional[Skill]:
+    """Update a skill's details."""
+    skill = db.query(Skill).filter(Skill.id == skill_id).first()
+    if skill:
+        if name is not None:
+            skill.name = name
+        if category is not None:
+            skill.category = category
+        if description is not None:
+            skill.description = description
+        db.commit()
+        db.refresh(skill)
+    return skill
+
+
+def delete_skill(db: Session, skill_id: int) -> bool:
+    """Delete a skill."""
+    skill = db.query(Skill).filter(Skill.id == skill_id).first()
+    if skill:
+        db.delete(skill)
+        db.commit()
+        return True
+    return False
+
+
+def update_want(db: Session, want_id: int, name: str = None,
+                description: str = None) -> Optional[SkillWant]:
+    """Update a skill want's details."""
+    want = db.query(SkillWant).filter(SkillWant.id == want_id).first()
+    if want:
+        if name is not None:
+            want.name = name
+        if description is not None:
+            want.description = description
+        db.commit()
+        db.refresh(want)
+    return want
+
+
+def delete_want(db: Session, want_id: int) -> bool:
+    """Delete a skill want."""
+    want = db.query(SkillWant).filter(SkillWant.id == want_id).first()
+    if want:
+        db.delete(want)
+        db.commit()
+        return True
+    return False
 
 
 def get_all_transactions(db: Session) -> List[Transaction]:
@@ -212,6 +292,33 @@ def dispute_transaction(db: Session, transaction_id: int) -> Optional[Transactio
     tx = db.query(Transaction).filter(Transaction.id == transaction_id).first()
     if tx:
         tx.status = "disputed"
+        db.commit()
+        db.refresh(tx)
+    return tx
+
+
+def update_transaction(db: Session, transaction_id: int, hours: float = None,
+                       service_description: str = None, notes: str = None) -> Optional[Transaction]:
+    """Update a transaction's details (only if not completed)."""
+    tx = db.query(Transaction).filter(Transaction.id == transaction_id).first()
+    if tx:
+        if hours is not None:
+            tx.hours = hours
+        if service_description is not None:
+            tx.service_description = service_description
+        if notes is not None:
+            tx.notes = notes
+        db.commit()
+        db.refresh(tx)
+    return tx
+
+
+def reopen_transaction(db: Session, transaction_id: int) -> Optional[Transaction]:
+    """Reopen a disputed transaction back to pending."""
+    tx = db.query(Transaction).filter(Transaction.id == transaction_id).first()
+    if tx:
+        tx.status = "pending"
+        tx.completed_at = None
         db.commit()
         db.refresh(tx)
     return tx
@@ -264,6 +371,43 @@ def close_need(db: Session, need_id: int) -> Optional[Need]:
     return need
 
 
+def update_need(db: Session, need_id: int, title: str = None, description: str = None,
+                hours_estimated: float = None) -> Optional[Need]:
+    """Update a need's details."""
+    need = db.query(Need).filter(Need.id == need_id).first()
+    if need:
+        if title is not None:
+            need.title = title
+        if description is not None:
+            need.description = description
+        if hours_estimated is not None:
+            need.hours_estimated = hours_estimated
+        db.commit()
+        db.refresh(need)
+    return need
+
+
+def reopen_need(db: Session, need_id: int) -> Optional[Need]:
+    """Reopen a fulfilled or closed need back to open."""
+    need = db.query(Need).filter(Need.id == need_id).first()
+    if need:
+        need.status = "open"
+        need.fulfilled_at = None
+        db.commit()
+        db.refresh(need)
+    return need
+
+
+def delete_need(db: Session, need_id: int) -> bool:
+    """Delete a need."""
+    need = db.query(Need).filter(Need.id == need_id).first()
+    if need:
+        db.delete(need)
+        db.commit()
+        return True
+    return False
+
+
 def get_all_governance(db: Session) -> List[GovernanceLog]:
     return db.query(GovernanceLog).order_by(GovernanceLog.created_at.desc()).all()
 
@@ -302,6 +446,32 @@ def update_governance_status(db: Session, entry_id: int, status: str) -> Optiona
         db.commit()
         db.refresh(entry)
     return entry
+
+
+def update_governance(db: Session, entry_id: int, title: str = None,
+                      description: str = None, decision_type: str = None) -> Optional[GovernanceLog]:
+    """Update a governance entry's details."""
+    entry = db.query(GovernanceLog).filter(GovernanceLog.id == entry_id).first()
+    if entry:
+        if title is not None:
+            entry.title = title
+        if description is not None:
+            entry.description = description
+        if decision_type is not None:
+            entry.decision_type = decision_type
+        db.commit()
+        db.refresh(entry)
+    return entry
+
+
+def delete_governance(db: Session, entry_id: int) -> bool:
+    """Delete a governance entry."""
+    entry = db.query(GovernanceLog).filter(GovernanceLog.id == entry_id).first()
+    if entry:
+        db.delete(entry)
+        db.commit()
+        return True
+    return False
 
 
 def get_skills_directory(db: Session) -> Dict[str, Any]:

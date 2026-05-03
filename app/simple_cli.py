@@ -24,11 +24,14 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.services import (
     get_session, get_dashboard_stats, get_member_balances,
     get_all_members, get_member_detail, create_member,
-    add_skill, add_want, get_all_transactions, create_transaction,
-    complete_transaction, dispute_transaction, delete_transaction,
-    get_all_needs, create_need, fulfill_need, close_need,
+    update_member, update_member_status, delete_member,
+    add_skill, add_want, delete_skill, delete_want,
+    get_all_transactions, create_transaction,
+    complete_transaction, dispute_transaction, reopen_transaction, update_transaction, delete_transaction,
+    get_all_needs, create_need, fulfill_need, close_need, reopen_need, update_need, delete_need,
     get_all_governance, create_governance, vote_governance,
-    update_governance_status, get_skills_directory, get_skill_matches,
+    update_governance_status, update_governance, delete_governance,
+    get_skills_directory, get_skill_matches,
     calculate_balance
 )
 from app.models import Member
@@ -275,6 +278,51 @@ def add_member_want():
         db.close()
 
 
+def edit_member():
+    """Edit a member's details."""
+    member_id = int(get_float_input("Member ID: "))
+
+    db = get_session()
+    try:
+        member = get_member_detail(db, member_id)
+        if not member:
+            print("Member not found.")
+            return
+
+        print_header(f"EDIT MEMBER: {member.name}")
+        print("Press Enter to keep current value.")
+        name = input(f"Name [{member.name}]: ").strip()
+        email = input(f"Email [{member.email}]: ").strip()
+        phone = input(f"Phone [{member.phone or 'N/A'}]: ").strip()
+        bio = input(f"Bio [{member.bio or 'N/A'}]: ").strip()
+        status = input(f"Status [{member.status}]: ").strip()
+
+        update_member(db, member_id, name or None, email or None, phone or None, bio or None)
+        if status:
+            update_member_status(db, member_id, status)
+        print("Member updated.")
+    finally:
+        db.close()
+
+
+def remove_member():
+    """Delete a member."""
+    member_id = int(get_float_input("Member ID: "))
+    confirm = input("Delete member and all related data? (yes/no): ").strip().lower()
+    if confirm != "yes":
+        print("Cancelled.")
+        return
+
+    db = get_session()
+    try:
+        if delete_member(db, member_id):
+            print("Member deleted.")
+        else:
+            print("Member not found.")
+    finally:
+        db.close()
+
+
 def members_menu():
     """Members submenu."""
     while True:
@@ -284,10 +332,12 @@ def members_menu():
             "View All Members",
             "View Member Detail",
             "Add New Member",
+            "Edit Member",
+            "Delete Member",
             "Add Skill to Member",
             "Add Want to Member"
         ])
-        choice = get_choice(5)
+        choice = get_choice(7)
 
         if choice == 0:
             return
@@ -298,8 +348,12 @@ def members_menu():
         elif choice == 3:
             add_member()
         elif choice == 4:
-            add_member_skill()
+            edit_member()
         elif choice == 5:
+            remove_member()
+        elif choice == 6:
+            add_member_skill()
+        elif choice == 7:
             add_member_want()
         pause()
 
@@ -358,15 +412,43 @@ def add_transaction():
         db.close()
 
 
+def edit_transaction():
+    """Edit a transaction's details."""
+    tx_id = int(get_float_input("Transaction ID: "))
+
+    db = get_session()
+    try:
+        from app.models import Transaction
+        tx = db.query(Transaction).filter(Transaction.id == tx_id).first()
+        if not tx:
+            print("Transaction not found.")
+            return
+
+        print_header(f"EDIT TRANSACTION #{tx_id}")
+        print("Press Enter to keep current value.")
+        hours = input(f"Hours [{tx.hours}]: ").strip()
+        description = input(f"Description [{tx.service_description}]: ").strip()
+        notes = input(f"Notes [{tx.notes or 'N/A'}]: ").strip()
+
+        update_transaction(db, tx_id,
+                          float(hours) if hours else None,
+                          description or None,
+                          notes or None)
+        print("Transaction updated.")
+    finally:
+        db.close()
+
+
 def manage_transaction():
-    """Complete, dispute, or delete a transaction."""
+    """Complete, dispute, reopen, or delete a transaction."""
     tx_id = int(get_float_input("Transaction ID: "))
 
     print("\n1. Complete")
     print("2. Dispute")
-    print("3. Delete")
+    print("3. Reopen")
+    print("4. Delete")
     print("0. Cancel")
-    choice = get_choice(3)
+    choice = get_choice(4)
 
     db = get_session()
     try:
@@ -383,10 +465,20 @@ def manage_transaction():
             else:
                 print("Transaction not found.")
         elif choice == 3:
-            if delete_transaction(db, tx_id):
-                print("Transaction deleted.")
+            tx = reopen_transaction(db, tx_id)
+            if tx:
+                print("Transaction reopened.")
             else:
                 print("Transaction not found.")
+        elif choice == 4:
+            confirm = input("Delete transaction? (yes/no): ").strip().lower()
+            if confirm == "yes":
+                if delete_transaction(db, tx_id):
+                    print("Transaction deleted.")
+                else:
+                    print("Transaction not found.")
+            else:
+                print("Cancelled.")
     finally:
         db.close()
 
@@ -399,9 +491,10 @@ def transactions_menu():
         print_menu([
             "View All Transactions",
             "Create Transaction",
-            "Manage Transaction (Complete/Dispute/Delete)"
+            "Edit Transaction",
+            "Manage Transaction (Complete/Dispute/Reopen/Delete)"
         ])
-        choice = get_choice(3)
+        choice = get_choice(4)
 
         if choice == 0:
             return
@@ -410,6 +503,8 @@ def transactions_menu():
         elif choice == 2:
             add_transaction()
         elif choice == 3:
+            edit_transaction()
+        elif choice == 4:
             manage_transaction()
         pause()
 
@@ -460,14 +555,43 @@ def add_need():
         db.close()
 
 
+def edit_need():
+    """Edit a need's details."""
+    need_id = int(get_float_input("Need ID: "))
+
+    db = get_session()
+    try:
+        from app.models import Need
+        need = db.query(Need).filter(Need.id == need_id).first()
+        if not need:
+            print("Need not found.")
+            return
+
+        print_header(f"EDIT NEED #{need_id}")
+        print("Press Enter to keep current value.")
+        title = input(f"Title [{need.title}]: ").strip()
+        description = input(f"Description [{need.description}]: ").strip()
+        hours = input(f"Hours [{need.hours_estimated}]: ").strip()
+
+        update_need(db, need_id,
+                   title or None,
+                   description or None,
+                   float(hours) if hours else None)
+        print("Need updated.")
+    finally:
+        db.close()
+
+
 def manage_need():
-    """Fulfill or close a need."""
+    """Fulfill, close, reopen, or delete a need."""
     need_id = int(get_float_input("Need ID: "))
 
     print("\n1. Mark as Fulfilled")
     print("2. Close")
+    print("3. Reopen")
+    print("4. Delete")
     print("0. Cancel")
-    choice = get_choice(2)
+    choice = get_choice(4)
 
     db = get_session()
     try:
@@ -483,6 +607,21 @@ def manage_need():
                 print("Need closed.")
             else:
                 print("Need not found.")
+        elif choice == 3:
+            need = reopen_need(db, need_id)
+            if need:
+                print("Need reopened.")
+            else:
+                print("Need not found.")
+        elif choice == 4:
+            confirm = input("Delete need? (yes/no): ").strip().lower()
+            if confirm == "yes":
+                if delete_need(db, need_id):
+                    print("Need deleted.")
+                else:
+                    print("Need not found.")
+            else:
+                print("Cancelled.")
     finally:
         db.close()
 
@@ -495,9 +634,10 @@ def needs_menu():
         print_menu([
             "View All Needs",
             "Post a Need",
-            "Manage Need (Fulfill/Close)"
+            "Edit Need",
+            "Manage Need (Fulfill/Close/Reopen/Delete)"
         ])
-        choice = get_choice(3)
+        choice = get_choice(4)
 
         if choice == 0:
             return
@@ -506,6 +646,8 @@ def needs_menu():
         elif choice == 2:
             add_need()
         elif choice == 3:
+            edit_need()
+        elif choice == 4:
             manage_need()
         pause()
 
@@ -560,15 +702,43 @@ def add_governance():
         db.close()
 
 
+def edit_governance():
+    """Edit a governance entry."""
+    entry_id = int(get_float_input("Entry ID: "))
+
+    db = get_session()
+    try:
+        from app.models import GovernanceLog
+        entry = db.query(GovernanceLog).filter(GovernanceLog.id == entry_id).first()
+        if not entry:
+            print("Entry not found.")
+            return
+
+        print_header(f"EDIT GOVERNANCE #{entry_id}")
+        print("Press Enter to keep current value.")
+        title = input(f"Title [{entry.title}]: ").strip()
+        description = input(f"Description [{entry.description}]: ").strip()
+        decision_type = input(f"Decision type [{entry.decision_type}]: ").strip()
+
+        update_governance(db, entry_id,
+                         title or None,
+                         description or None,
+                         decision_type or None)
+        print("Governance entry updated.")
+    finally:
+        db.close()
+
+
 def manage_governance():
-    """Vote on or change status of a governance entry."""
+    """Vote on, change status, or delete a governance entry."""
     entry_id = int(get_float_input("Entry ID: "))
 
     print("\n1. Vote FOR")
     print("2. Vote AGAINST")
     print("3. Change Status")
+    print("4. Delete Entry")
     print("0. Cancel")
-    choice = get_choice(3)
+    choice = get_choice(4)
 
     db = get_session()
     try:
@@ -592,6 +762,15 @@ def manage_governance():
                 print("Status updated.")
             else:
                 print("Entry not found.")
+        elif choice == 4:
+            confirm = input("Delete governance entry? (yes/no): ").strip().lower()
+            if confirm == "yes":
+                if delete_governance(db, entry_id):
+                    print("Governance entry deleted.")
+                else:
+                    print("Entry not found.")
+            else:
+                print("Cancelled.")
     finally:
         db.close()
 
@@ -604,9 +783,10 @@ def governance_menu():
         print_menu([
             "View All Entries",
             "New Entry",
-            "Vote / Update Status"
+            "Edit Entry",
+            "Vote / Update Status / Delete"
         ])
-        choice = get_choice(3)
+        choice = get_choice(4)
 
         if choice == 0:
             return
@@ -615,6 +795,8 @@ def governance_menu():
         elif choice == 2:
             add_governance()
         elif choice == 3:
+            edit_governance()
+        elif choice == 4:
             manage_governance()
         pause()
 

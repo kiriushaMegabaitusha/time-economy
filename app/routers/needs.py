@@ -84,3 +84,77 @@ def close_need(need_id: int, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(need)
     return need
+
+
+@router.put("/{need_id}", response_model=schemas.Need)
+def update_need(need_id: int, need_update: schemas.NeedCreate, db: Session = Depends(get_db)):
+    need = db.query(models.Need).filter(models.Need.id == need_id).first()
+    if not need:
+        raise HTTPException(status_code=404, detail="Need not found")
+    need.title = need_update.title
+    need.description = need_update.description
+    need.hours_estimated = need_update.hours_estimated
+    db.commit()
+    db.refresh(need)
+    return need
+
+
+@router.post("/{need_id}/update-web")
+def update_need_web(
+    need_id: int,
+    title: str = Form(None),
+    description: str = Form(None),
+    hours_estimated: float = Form(None),
+    db: Session = Depends(get_db)
+):
+    need = db.query(models.Need).filter(models.Need.id == need_id).first()
+    if need:
+        if title:
+            need.title = title
+        if description:
+            need.description = description
+        if hours_estimated is not None:
+            need.hours_estimated = hours_estimated
+        db.commit()
+    return RedirectResponse(url="/needs", status_code=303)
+
+
+@router.post("/{need_id}/reopen")
+def reopen_need(need_id: int, db: Session = Depends(get_db)):
+    need = db.query(models.Need).filter(models.Need.id == need_id).first()
+    if not need:
+        raise HTTPException(status_code=404, detail="Need not found")
+    need.status = "open"
+    need.fulfilled_at = None
+    db.commit()
+    db.refresh(need)
+    return need
+
+
+@router.post("/{need_id}/reopen-web")
+def reopen_need_web(need_id: int, db: Session = Depends(get_db)):
+    need = db.query(models.Need).filter(models.Need.id == need_id).first()
+    if need:
+        need.status = "open"
+        need.fulfilled_at = None
+        db.commit()
+    return RedirectResponse(url="/needs", status_code=303)
+
+
+@router.delete("/{need_id}")
+def delete_need(need_id: int, db: Session = Depends(get_db)):
+    need = db.query(models.Need).filter(models.Need.id == need_id).first()
+    if not need:
+        raise HTTPException(status_code=404, detail="Need not found")
+    db.delete(need)
+    db.commit()
+    return {"message": "Need deleted"}
+
+
+@router.post("/{need_id}/delete-web")
+def delete_need_web(need_id: int, db: Session = Depends(get_db)):
+    need = db.query(models.Need).filter(models.Need.id == need_id).first()
+    if need:
+        db.delete(need)
+        db.commit()
+    return RedirectResponse(url="/needs", status_code=303)

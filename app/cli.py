@@ -27,11 +27,14 @@ from datetime import datetime
 from app.services import (
     get_session, get_dashboard_stats, get_member_balances,
     get_all_members, get_member_detail, create_member,
-    add_skill, add_want, get_all_transactions, create_transaction,
-    complete_transaction, dispute_transaction, delete_transaction,
-    get_all_needs, create_need, fulfill_need, close_need,
+    update_member, update_member_status, delete_member,
+    add_skill, add_want, update_skill, delete_skill, update_want, delete_want,
+    get_all_transactions, create_transaction,
+    complete_transaction, dispute_transaction, reopen_transaction, update_transaction, delete_transaction,
+    get_all_needs, create_need, fulfill_need, close_need, reopen_need, update_need, delete_need,
     get_all_governance, create_governance, vote_governance,
-    update_governance_status, get_skills_directory, get_skill_matches
+    update_governance_status, update_governance, delete_governance,
+    get_skills_directory, get_skill_matches
 )
 
 console = Console()
@@ -203,6 +206,64 @@ def member_want(
     finally:
         db.close()
 
+@members_app.command("edit")
+def edit_member(
+    member_id: int = typer.Argument(..., help="Member ID"),
+    name: Optional[str] = typer.Option(None, help="New name"),
+    email: Optional[str] = typer.Option(None, help="New email"),
+    phone: Optional[str] = typer.Option(None, help="New phone"),
+    bio: Optional[str] = typer.Option(None, help="New bio"),
+    status: Optional[str] = typer.Option(None, help="New status: active, inactive, suspended")
+):
+    """Edit a member's details."""
+    db = get_session()
+    try:
+        member = update_member(db, member_id, name, email, phone, bio)
+        if status:
+            update_member_status(db, member_id, status)
+        if member:
+            console.print(f"[green]Member {member_id} updated[/green]")
+        else:
+            console.print(f"[red]Member {member_id} not found[/red]")
+    finally:
+        db.close()
+
+@members_app.command("delete")
+def remove_member(member_id: int = typer.Argument(..., help="Member ID")):
+    """Delete a member and all related data."""
+    db = get_session()
+    try:
+        if delete_member(db, member_id):
+            console.print(f"[green]Member {member_id} deleted[/green]")
+        else:
+            console.print(f"[red]Member {member_id} not found[/red]")
+    finally:
+        db.close()
+
+@members_app.command("delete-skill")
+def remove_skill(skill_id: int = typer.Argument(..., help="Skill ID")):
+    """Delete a skill."""
+    db = get_session()
+    try:
+        if delete_skill(db, skill_id):
+            console.print(f"[green]Skill {skill_id} deleted[/green]")
+        else:
+            console.print(f"[red]Skill {skill_id} not found[/red]")
+    finally:
+        db.close()
+
+@members_app.command("delete-want")
+def remove_want(want_id: int = typer.Argument(..., help="Want ID")):
+    """Delete a skill want."""
+    db = get_session()
+    try:
+        if delete_want(db, want_id):
+            console.print(f"[green]Want {want_id} deleted[/green]")
+        else:
+            console.print(f"[red]Want {want_id} not found[/red]")
+    finally:
+        db.close()
+
 
 # ==================== TRANSACTIONS ====================
 
@@ -283,6 +344,49 @@ def dispute_tx(transaction_id: int = typer.Argument(..., help="Transaction ID"))
     finally:
         db.close()
 
+@tx_app.command("reopen")
+def reopen_tx(transaction_id: int = typer.Argument(..., help="Transaction ID")):
+    """Reopen a disputed transaction."""
+    db = get_session()
+    try:
+        tx = reopen_transaction(db, transaction_id)
+        if tx:
+            console.print(f"[green]Transaction {transaction_id} reopened[/green]")
+        else:
+            console.print(f"[red]Transaction {transaction_id} not found[/red]")
+    finally:
+        db.close()
+
+@tx_app.command("edit")
+def edit_tx(
+    transaction_id: int = typer.Argument(..., help="Transaction ID"),
+    hours: Optional[float] = typer.Option(None, help="New hours"),
+    description: Optional[str] = typer.Option(None, help="New description"),
+    notes: Optional[str] = typer.Option(None, help="New notes")
+):
+    """Edit a transaction."""
+    db = get_session()
+    try:
+        tx = update_transaction(db, transaction_id, hours, description, notes)
+        if tx:
+            console.print(f"[green]Transaction {transaction_id} updated[/green]")
+        else:
+            console.print(f"[red]Transaction {transaction_id} not found[/red]")
+    finally:
+        db.close()
+
+@tx_app.command("delete")
+def remove_tx(transaction_id: int = typer.Argument(..., help="Transaction ID")):
+    """Delete a transaction."""
+    db = get_session()
+    try:
+        if delete_transaction(db, transaction_id):
+            console.print(f"[green]Transaction {transaction_id} deleted[/green]")
+        else:
+            console.print(f"[red]Transaction {transaction_id} not found[/red]")
+    finally:
+        db.close()
+
 
 # ==================== NEEDS ====================
 
@@ -341,6 +445,62 @@ def fulfill_need_cmd(need_id: int = typer.Argument(..., help="Need ID")):
         need = fulfill_need(db, need_id)
         if need:
             console.print(f"[green]Need {need_id} fulfilled[/green]")
+        else:
+            console.print(f"[red]Need {need_id} not found[/red]")
+    finally:
+        db.close()
+
+@needs_app.command("close")
+def close_need_cmd(need_id: int = typer.Argument(..., help="Need ID")):
+    """Close a need."""
+    db = get_session()
+    try:
+        need = close_need(db, need_id)
+        if need:
+            console.print(f"[green]Need {need_id} closed[/green]")
+        else:
+            console.print(f"[red]Need {need_id} not found[/red]")
+    finally:
+        db.close()
+
+@needs_app.command("reopen")
+def reopen_need_cmd(need_id: int = typer.Argument(..., help="Need ID")):
+    """Reopen a fulfilled or closed need."""
+    db = get_session()
+    try:
+        need = reopen_need(db, need_id)
+        if need:
+            console.print(f"[green]Need {need_id} reopened[/green]")
+        else:
+            console.print(f"[red]Need {need_id} not found[/red]")
+    finally:
+        db.close()
+
+@needs_app.command("edit")
+def edit_need(
+    need_id: int = typer.Argument(..., help="Need ID"),
+    title: Optional[str] = typer.Option(None, help="New title"),
+    description: Optional[str] = typer.Option(None, help="New description"),
+    hours: Optional[float] = typer.Option(None, "--hours", help="New estimated hours")
+):
+    """Edit a need."""
+    db = get_session()
+    try:
+        need = update_need(db, need_id, title, description, hours)
+        if need:
+            console.print(f"[green]Need {need_id} updated[/green]")
+        else:
+            console.print(f"[red]Need {need_id} not found[/red]")
+    finally:
+        db.close()
+
+@needs_app.command("delete")
+def remove_need(need_id: int = typer.Argument(..., help="Need ID")):
+    """Delete a need."""
+    db = get_session()
+    try:
+        if delete_need(db, need_id):
+            console.print(f"[green]Need {need_id} deleted[/green]")
         else:
             console.print(f"[red]Need {need_id} not found[/red]")
     finally:
@@ -410,6 +570,52 @@ def vote_gov(
         entry = vote_governance(db, entry_id, vote)
         if entry:
             console.print(f"[green]Voted {vote} on entry {entry_id}[/green]")
+        else:
+            console.print(f"[red]Entry {entry_id} not found[/red]")
+    finally:
+        db.close()
+
+@gov_app.command("status")
+def status_gov(
+    entry_id: int = typer.Argument(..., help="Entry ID"),
+    status: str = typer.Argument(..., help="New status: proposed, approved, rejected, implemented")
+):
+    """Update governance entry status."""
+    db = get_session()
+    try:
+        entry = update_governance_status(db, entry_id, status)
+        if entry:
+            console.print(f"[green]Entry {entry_id} status updated to {status}[/green]")
+        else:
+            console.print(f"[red]Entry {entry_id} not found[/red]")
+    finally:
+        db.close()
+
+@gov_app.command("edit")
+def edit_gov(
+    entry_id: int = typer.Argument(..., help="Entry ID"),
+    title: Optional[str] = typer.Option(None, help="New title"),
+    description: Optional[str] = typer.Option(None, help="New description"),
+    decision_type: Optional[str] = typer.Option(None, "--type", help="New decision type")
+):
+    """Edit a governance entry."""
+    db = get_session()
+    try:
+        entry = update_governance(db, entry_id, title, description, decision_type)
+        if entry:
+            console.print(f"[green]Entry {entry_id} updated[/green]")
+        else:
+            console.print(f"[red]Entry {entry_id} not found[/red]")
+    finally:
+        db.close()
+
+@gov_app.command("delete")
+def remove_gov(entry_id: int = typer.Argument(..., help="Entry ID")):
+    """Delete a governance entry."""
+    db = get_session()
+    try:
+        if delete_governance(db, entry_id):
+            console.print(f"[green]Entry {entry_id} deleted[/green]")
         else:
             console.print(f"[red]Entry {entry_id} not found[/red]")
     finally:

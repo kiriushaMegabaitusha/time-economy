@@ -68,12 +68,67 @@
         </div>
         {% endif %}
 
-        <a href="/members/{{ member.id }}" class="block text-center text-sm text-teal-700 hover:text-teal-800 font-medium py-2 border border-teal-200 rounded-lg hover:bg-teal-50 transition-colors">
-            View Profile
-        </a>
+        <div class="flex gap-2">
+            <a href="/members/{{ member.id }}" class="flex-1 block text-center text-sm text-teal-700 hover:text-teal-800 font-medium py-2 border border-teal-200 rounded-lg hover:bg-teal-50 transition-colors">
+                View Profile
+            </a>
+            <button onclick="openEditModal({{ member.id }}, '{{ member.name|replace("'", "\\'") }}', '{{ member.email|replace("'", "\\'") }}', '{{ (member.phone or '')|replace("'", "\\'") }}', '{{ (member.bio or '')|replace("'", "\\'") }}', '{{ member.status }}')" class="px-3 py-2 text-sm text-stone-600 hover:text-stone-800 border border-stone-200 rounded-lg hover:bg-stone-50 transition-colors">
+                Edit
+            </button>
+        </div>
     </div>
     {% endfor %}
 </div>
+
+<div id="edit-member-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+        <h2 class="text-xl font-bold text-stone-900 mb-4">Edit Member</h2>
+        <form id="edit-member-form" action="" method="post">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-stone-700 mb-1">Name</label>
+                    <input type="text" name="name" id="edit-name" class="w-full border border-stone-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-stone-700 mb-1">Email</label>
+                    <input type="email" name="email" id="edit-email" class="w-full border border-stone-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-stone-700 mb-1">Phone</label>
+                    <input type="tel" name="phone" id="edit-phone" class="w-full border border-stone-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-stone-700 mb-1">Bio</label>
+                    <textarea name="bio" id="edit-bio" rows="2" class="w-full border border-stone-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-stone-700 mb-1">Status</label>
+                    <select name="status" id="edit-status" class="w-full border border-stone-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none">
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="suspended">Suspended</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button type="button" onclick="document.getElementById('edit-member-modal').classList.add('hidden')" class="flex-1 py-2 border border-stone-300 rounded-lg text-stone-600 hover:bg-stone-50 transition-colors">Cancel</button>
+                <button type="submit" class="flex-1 py-2 btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openEditModal(id, name, email, phone, bio, status) {
+    document.getElementById('edit-member-form').action = '/members/' + id + '/update-web';
+    document.getElementById('edit-name').value = name;
+    document.getElementById('edit-email').value = email;
+    document.getElementById('edit-phone').value = phone;
+    document.getElementById('edit-bio').value = bio;
+    document.getElementById('edit-status').value = status;
+    document.getElementById('edit-member-modal').classList.remove('hidden');
+}
+</script>
 
 <div id="add-member-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">

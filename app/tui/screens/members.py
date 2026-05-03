@@ -7,7 +7,8 @@ from textual.reactive import reactive
 
 from app.services import (
     get_session, get_all_members, get_member_detail, create_member,
-    add_skill, add_want, calculate_balance
+    add_skill, add_want, update_member, delete_member, delete_skill, delete_want,
+    calculate_balance
 )
 
 
@@ -50,6 +51,96 @@ class CreateMemberModal(ModalScreen):
             member = create_member(db, name, email, phone, bio, initial)
             self.notify(f"Member '{name}' created!")
             self.dismiss(True)
+        except Exception as e:
+            self.notify(f"Error: {e}", severity="error")
+        finally:
+            db.close()
+
+
+class EditMemberModal(ModalScreen):
+    """Modal for editing a member."""
+
+    def __init__(self, member_id: int):
+        super().__init__()
+        self.member_id = member_id
+        self.member = None
+
+    def compose(self) -> None:
+        db = get_session()
+        try:
+            self.member = get_member_detail(db, self.member_id)
+        finally:
+            db.close()
+
+        with Container(classes="modal-form"):
+            yield Static("EDIT MEMBER", classes="modal-form-title")
+            yield Input(placeholder="Name", value=self.member.name if self.member else "", id="name")
+            yield Input(placeholder="Email", value=self.member.email if self.member else "", id="email")
+            yield Input(placeholder="Phone", value=self.member.phone or "", id="phone")
+            yield Input(placeholder="Bio", value=self.member.bio or "", id="bio")
+            yield Input(placeholder="Status (active/inactive/suspended)", value=self.member.status if self.member else "active", id="status")
+            with Horizontal():
+                yield Button("Save", variant="primary", id="save")
+                yield Button("Cancel", variant="error", id="cancel")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "cancel":
+            self.dismiss()
+            return
+
+        name = self.query_one("#name", Input).value.strip()
+        email = self.query_one("#email", Input).value.strip()
+        phone = self.query_one("#phone", Input).value.strip() or None
+        bio = self.query_one("#bio", Input).value.strip() or None
+        status = self.query_one("#status", Input).value.strip()
+
+        if not name or not email:
+            self.notify("Name and email are required", severity="error")
+            return
+
+        db = get_session()
+        try:
+            update_member(db, self.member_id, name, email, phone, bio)
+            if status:
+                from app.services import update_member_status
+                update_member_status(db, self.member_id, status)
+            self.notify("Member updated!")
+            self.dismiss(True)
+        except Exception as e:
+            self.notify(f"Error: {e}", severity="error")
+        finally:
+            db.close()
+
+
+class DeleteMemberModal(ModalScreen):
+    """Modal for confirming member deletion."""
+
+    def __init__(self, member_id: int, member_name: str):
+        super().__init__()
+        self.member_id = member_id
+        self.member_name = member_name
+
+    def compose(self) -> None:
+        with Container(classes="modal-form"):
+            yield Static("DELETE MEMBER", classes="modal-form-title")
+            yield Static(f"Are you sure you want to delete {self.member_name}?\nThis will also delete all their skills, wants, needs, and governance entries.")
+            with Horizontal():
+                yield Button("Delete", variant="error", id="confirm")
+                yield Button("Cancel", id="cancel")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "cancel":
+            self.dismiss()
+            return
+
+        db = get_session()
+        try:
+            if delete_member(db, self.member_id):
+                self.notify(f"Member '{self.member_name}' deleted!")
+                self.dismiss(True)
+            else:
+                self.notify("Member not found", severity="error")
+                self.dismiss()
         except Exception as e:
             self.notify(f"Error: {e}", severity="error")
         finally:
@@ -158,6 +249,8 @@ class MembersScreen(Screen):
 
             with Horizontal(id="members-actions"):
                 yield Button("New Member", variant="primary", id="btn-new")
+                yield Button("Edit Member", variant="primary", id="btn-edit")
+                yield Button("Delete Member", variant="error", id="btn-delete")
                 yield Button("Add Skill", variant="success", id="btn-skill")
                 yield Button("Add Want", variant="success", id="btn-want")
                 yield Button("Refresh", variant="primary", id="btn-refresh")
@@ -246,6 +339,24 @@ class MembersScreen(Screen):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn-new":
             self.push_screen(CreateMemberModal(), callback=lambda _: self.refresh_data())
+        elif event.button.id == "btn-edit":
+            if self.selected_member_id:
+                self.push_screen(EditMemberModal(self.selected_member_id), callback=lambda _: self.refresh_data())
+            else:
+                self.notify("Select a member first", severity="warning")
+        elif event.button.id == "btn-delete":
+            if self.selected_member_id:
+                db = get_session()
+                try:
+                    member = get_member_detail(db, self.selected_member_id)
+                    if member:
+                        self.push_screen(DeleteMemberModal(self.selected_member_id, member.name), callback=lambda _: self.refresh_data())
+                    else:
+                        self.notify("Member not found", severity="error")
+                finally:
+                    db.close()
+            else:
+                self.notify("Select a member first", severity="warning")
         elif event.button.id == "btn-skill":
             if self.selected_member_id:
                 self.push_screen(AddSkillModal(self.selected_member_id), callback=lambda _: self.refresh_data())

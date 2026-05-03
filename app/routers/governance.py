@@ -86,3 +86,55 @@ def update_status(entry_id: int, status: str, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(entry)
     return entry
+
+
+@router.put("/{entry_id}", response_model=schemas.GovernanceLog)
+def update_governance(entry_id: int, entry_update: schemas.GovernanceLogCreate, db: Session = Depends(get_db)):
+    entry = db.query(models.GovernanceLog).filter(models.GovernanceLog.id == entry_id).first()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    entry.title = entry_update.title
+    entry.description = entry_update.description
+    entry.decision_type = entry_update.decision_type
+    db.commit()
+    db.refresh(entry)
+    return entry
+
+
+@router.post("/{entry_id}/update-web")
+def update_governance_web(
+    entry_id: int,
+    title: str = Form(None),
+    description: str = Form(None),
+    decision_type: str = Form(None),
+    db: Session = Depends(get_db)
+):
+    entry = db.query(models.GovernanceLog).filter(models.GovernanceLog.id == entry_id).first()
+    if entry:
+        if title:
+            entry.title = title
+        if description:
+            entry.description = description
+        if decision_type:
+            entry.decision_type = decision_type
+        db.commit()
+    return RedirectResponse(url="/governance", status_code=303)
+
+
+@router.delete("/{entry_id}")
+def delete_governance(entry_id: int, db: Session = Depends(get_db)):
+    entry = db.query(models.GovernanceLog).filter(models.GovernanceLog.id == entry_id).first()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    db.delete(entry)
+    db.commit()
+    return {"message": "Governance entry deleted"}
+
+
+@router.post("/{entry_id}/delete-web")
+def delete_governance_web(entry_id: int, db: Session = Depends(get_db)):
+    entry = db.query(models.GovernanceLog).filter(models.GovernanceLog.id == entry_id).first()
+    if entry:
+        db.delete(entry)
+        db.commit()
+    return RedirectResponse(url="/governance", status_code=303)

@@ -7,7 +7,8 @@ from textual.reactive import reactive
 
 from app.services import (
     get_session, get_all_members, get_all_governance,
-    create_governance, vote_governance, update_governance_status
+    create_governance, vote_governance, update_governance_status,
+    update_governance, delete_governance
 )
 from app.models import Member
 
@@ -161,6 +162,70 @@ class StatusModal(ModalScreen):
             db.close()
 
 
+class EditGovernanceModal(ModalScreen):
+    """Modal for editing a governance entry."""
+
+    def __init__(self, entry_id: int):
+        super().__init__()
+        self.entry_id = entry_id
+        self.entry = None
+
+    def compose(self) -> None:
+        db = get_session()
+        try:
+            self.entry = db.query(Member).filter(Member.id == self.entry_id).first()
+            # Actually entry is from GovernanceLog model
+            from app.models import GovernanceLog
+            self.entry = db.query(GovernanceLog).filter(GovernanceLog.id == self.entry_id).first()
+        finally:
+            db.close()
+
+        with Container(classes="modal-form"):
+            yield Static("EDIT GOVERNANCE ENTRY", classes="modal-form-title")
+            decision_types = [
+                ("Rule Change", "rule_change"),
+                ("Dispute Resolution", "dispute_resolution"),
+                ("System Upgrade", "system_upgrade"),
+                ("Meeting Note", "meeting_note"),
+            ]
+            yield Select(options=decision_types, id="decision_type", prompt="Decision type")
+            yield Input(placeholder="Title", value=self.entry.title if self.entry else "", id="title")
+            yield Input(placeholder="Description", value=self.entry.description if self.entry else "", id="description")
+            with Horizontal():
+                yield Button("Save", variant="primary", id="save")
+                yield Button("Cancel", variant="error", id="cancel")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "cancel":
+            self.dismiss()
+            return
+
+        type_select = self.query_one("#decision_type", Select)
+        title_input = self.query_one("#title", Input)
+        desc_input = self.query_one("#description", Input)
+
+        decision_type = type_select.value
+        if decision_type is Select.BLANK:
+            self.notify("Please select a decision type", severity="error")
+            return
+
+        title = title_input.value.strip()
+        description = desc_input.value.strip()
+        if not title or not description:
+            self.notify("Title and description are required", severity="error")
+            return
+
+        db = get_session()
+        try:
+            update_governance(db, self.entry_id, title, description, str(decision_type))
+            self.notify("Governance entry updated!")
+            self.dismiss(True)
+        except Exception as e:
+            self.notify(f"Error: {e}", severity="error")
+        finally:
+            db.close()
+
+
 class GovernanceScreen(Screen):
     """Governance log screen."""
 
@@ -176,8 +241,10 @@ class GovernanceScreen(Screen):
 
             with Horizontal(id="gov-actions"):
                 yield Button("New Entry", variant="primary", id="btn-new")
+                yield Button("Edit", variant="primary", id="btn-edit")
                 yield Button("Vote", variant="success", id="btn-vote")
                 yield Button("Status", variant="primary", id="btn-status")
+                yield Button("Delete", variant="error", id="btn-delete")
                 yield Button("Refresh", variant="primary", id="btn-refresh")
 
             yield Static("Ready", id="footer")
@@ -231,6 +298,11 @@ class GovernanceScreen(Screen):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn-new":
             self.push_screen(CreateGovernanceModal(), callback=lambda _: self.refresh_data())
+        elif event.button.id == "btn-edit":
+            if self.selected_entry_id:
+                self.push_screen(EditGovernanceModal(self.selected_entry_id), callback=lambda _: self.refresh_data())
+            else:
+                self.notify("Select an entry first", severity="warning")
         elif event.button.id == "btn-vote":
             if self.selected_entry_id:
                 self.push_screen(VoteModal(self.selected_entry_id), callback=lambda _: self.refresh_data())
@@ -239,6 +311,20 @@ class GovernanceScreen(Screen):
         elif event.button.id == "btn-status":
             if self.selected_entry_id:
                 self.push_screen(StatusModal(self.selected_entry_id), callback=lambda _: self.refresh_data())
+            else:
+                self.notify("Select an entry first", severity="warning")
+        elif event.button.id == "btn-delete":
+            if self.selected_entry_id:
+                db = get_session()
+                try:
+                    delete_governance(db, self.selected_entry_id)
+                    self.notify("Governance entry deleted!")
+                    self.selected_entry_id = None
+                    self.refresh_data()
+                except Exception as e:
+                    self.notify(f"Error: {e}", severity="error")
+                finally:
+                    db.close()
             else:
                 self.notify("Select an entry first", severity="warning")
         elif event.button.id == "btn-refresh":

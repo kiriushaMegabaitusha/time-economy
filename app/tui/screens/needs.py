@@ -7,7 +7,7 @@ from textual.reactive import reactive
 
 from app.services import (
     get_session, get_all_members, get_all_needs,
-    create_need, fulfill_need, close_need
+    create_need, fulfill_need, close_need, reopen_need, update_need, delete_need
 )
 from app.models import Member
 
@@ -76,6 +76,61 @@ class CreateNeedModal(ModalScreen):
             db.close()
 
 
+class EditNeedModal(ModalScreen):
+    """Modal for editing a need."""
+
+    def __init__(self, need_id: int):
+        super().__init__()
+        self.need_id = need_id
+        self.need = None
+
+    def compose(self) -> None:
+        db = get_session()
+        try:
+            self.need = db.query(Member).filter(Member.id == self.need_id).first()
+            # Actually need is from Need model, not Member
+            from app.models import Need
+            self.need = db.query(Need).filter(Need.id == self.need_id).first()
+        finally:
+            db.close()
+
+        with Container(classes="modal-form"):
+            yield Static("EDIT NEED", classes="modal-form-title")
+            yield Input(placeholder="Title", value=self.need.title if self.need else "", id="title")
+            yield Input(placeholder="Description", value=self.need.description if self.need else "", id="description")
+            yield Input(placeholder="Hours estimated", value=str(self.need.hours_estimated) if self.need else "1.0", id="hours")
+            with Horizontal():
+                yield Button("Save", variant="primary", id="save")
+                yield Button("Cancel", variant="error", id="cancel")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "cancel":
+            self.dismiss()
+            return
+
+        title = self.query_one("#title", Input).value.strip()
+        description = self.query_one("#description", Input).value.strip()
+
+        if not title or not description:
+            self.notify("Title and description are required", severity="error")
+            return
+
+        try:
+            hours = float(self.query_one("#hours", Input).value or 1.0)
+        except ValueError:
+            hours = 1.0
+
+        db = get_session()
+        try:
+            update_need(db, self.need_id, title, description, hours)
+            self.notify("Need updated!")
+            self.dismiss(True)
+        except Exception as e:
+            self.notify(f"Error: {e}", severity="error")
+        finally:
+            db.close()
+
+
 class NeedsScreen(Screen):
     """Needs board screen."""
 
@@ -91,8 +146,11 @@ class NeedsScreen(Screen):
 
             with Horizontal(id="needs-actions"):
                 yield Button("Post Need", variant="primary", id="btn-new")
+                yield Button("Edit", variant="primary", id="btn-edit")
                 yield Button("Fulfill", variant="success", id="btn-fulfill")
+                yield Button("Reopen", variant="warning", id="btn-reopen")
                 yield Button("Close", variant="error", id="btn-close")
+                yield Button("Delete", variant="error", id="btn-delete")
                 yield Button("Refresh", variant="primary", id="btn-refresh")
 
             yield Static("Ready", id="footer")
@@ -145,6 +203,11 @@ class NeedsScreen(Screen):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn-new":
             self.push_screen(CreateNeedModal(), callback=lambda _: self.refresh_data())
+        elif event.button.id == "btn-edit":
+            if self.selected_need_id:
+                self.push_screen(EditNeedModal(self.selected_need_id), callback=lambda _: self.refresh_data())
+            else:
+                self.notify("Select a need first", severity="warning")
         elif event.button.id == "btn-fulfill":
             if self.selected_need_id:
                 db = get_session()
@@ -158,12 +221,39 @@ class NeedsScreen(Screen):
                     db.close()
             else:
                 self.notify("Select a need first", severity="warning")
+        elif event.button.id == "btn-reopen":
+            if self.selected_need_id:
+                db = get_session()
+                try:
+                    reopen_need(db, self.selected_need_id)
+                    self.notify("Need reopened!")
+                    self.refresh_data()
+                except Exception as e:
+                    self.notify(f"Error: {e}", severity="error")
+                finally:
+                    db.close()
+            else:
+                self.notify("Select a need first", severity="warning")
         elif event.button.id == "btn-close":
             if self.selected_need_id:
                 db = get_session()
                 try:
                     close_need(db, self.selected_need_id)
                     self.notify("Need closed!")
+                    self.refresh_data()
+                except Exception as e:
+                    self.notify(f"Error: {e}", severity="error")
+                finally:
+                    db.close()
+            else:
+                self.notify("Select a need first", severity="warning")
+        elif event.button.id == "btn-delete":
+            if self.selected_need_id:
+                db = get_session()
+                try:
+                    delete_need(db, self.selected_need_id)
+                    self.notify("Need deleted!")
+                    self.selected_need_id = None
                     self.refresh_data()
                 except Exception as e:
                     self.notify(f"Error: {e}", severity="error")

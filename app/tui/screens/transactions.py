@@ -8,7 +8,7 @@ from textual.reactive import reactive
 from app.services import (
     get_session, get_all_members, get_all_transactions,
     create_transaction, complete_transaction, dispute_transaction,
-    delete_transaction, calculate_balance
+    reopen_transaction, update_transaction, delete_transaction, calculate_balance
 )
 from app.models import Member
 
@@ -87,6 +87,59 @@ class CreateTransactionModal(ModalScreen):
             db.close()
 
 
+class EditTransactionModal(ModalScreen):
+    """Modal for editing a transaction."""
+
+    def __init__(self, tx_id: int):
+        super().__init__()
+        self.tx_id = tx_id
+        self.tx = None
+
+    def compose(self) -> None:
+        db = get_session()
+        try:
+            self.tx = db.query(Transaction).filter(Transaction.id == self.tx_id).first()
+        finally:
+            db.close()
+
+        with Container(classes="modal-form"):
+            yield Static("EDIT TRANSACTION", classes="modal-form-title")
+            yield Input(placeholder="Hours", value=str(self.tx.hours) if self.tx else "", id="hours")
+            yield Input(placeholder="Service description", value=self.tx.service_description if self.tx else "", id="description")
+            yield Input(placeholder="Notes", value=self.tx.notes or "", id="notes")
+            with Horizontal():
+                yield Button("Save", variant="primary", id="save")
+                yield Button("Cancel", variant="error", id="cancel")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "cancel":
+            self.dismiss()
+            return
+
+        try:
+            hours = float(self.query_one("#hours", Input).value)
+        except ValueError:
+            self.notify("Hours must be a number", severity="error")
+            return
+
+        description = self.query_one("#description", Input).value.strip()
+        if not description:
+            self.notify("Description is required", severity="error")
+            return
+
+        notes = self.query_one("#notes", Input).value.strip() or None
+
+        db = get_session()
+        try:
+            update_transaction(db, self.tx_id, hours, description, notes)
+            self.notify("Transaction updated!")
+            self.dismiss(True)
+        except Exception as e:
+            self.notify(f"Error: {e}", severity="error")
+        finally:
+            db.close()
+
+
 class TransactionsScreen(Screen):
     """Transactions log screen."""
 
@@ -102,7 +155,9 @@ class TransactionsScreen(Screen):
 
             with Horizontal(id="tx-actions"):
                 yield Button("New Transaction", variant="primary", id="btn-new")
+                yield Button("Edit", variant="primary", id="btn-edit")
                 yield Button("Complete", variant="success", id="btn-complete")
+                yield Button("Reopen", variant="warning", id="btn-reopen")
                 yield Button("Dispute", variant="error", id="btn-dispute")
                 yield Button("Delete", variant="error", id="btn-delete")
                 yield Button("Refresh", variant="primary", id="btn-refresh")
@@ -160,12 +215,30 @@ class TransactionsScreen(Screen):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn-new":
             self.push_screen(CreateTransactionModal(), callback=lambda _: self.refresh_data())
+        elif event.button.id == "btn-edit":
+            if self.selected_tx_id:
+                self.push_screen(EditTransactionModal(self.selected_tx_id), callback=lambda _: self.refresh_data())
+            else:
+                self.notify("Select a transaction first", severity="warning")
         elif event.button.id == "btn-complete":
             if self.selected_tx_id:
                 db = get_session()
                 try:
                     complete_transaction(db, self.selected_tx_id)
                     self.notify("Transaction completed!")
+                    self.refresh_data()
+                except Exception as e:
+                    self.notify(f"Error: {e}", severity="error")
+                finally:
+                    db.close()
+            else:
+                self.notify("Select a transaction first", severity="warning")
+        elif event.button.id == "btn-reopen":
+            if self.selected_tx_id:
+                db = get_session()
+                try:
+                    reopen_transaction(db, self.selected_tx_id)
+                    self.notify("Transaction reopened!")
                     self.refresh_data()
                 except Exception as e:
                     self.notify(f"Error: {e}", severity="error")
