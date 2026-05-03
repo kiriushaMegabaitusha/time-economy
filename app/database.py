@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from contextlib import contextmanager
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///./time_economy.db"
 
@@ -13,6 +14,16 @@ Base = declarative_base()
 
 
 def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+@contextmanager
+def get_db_session():
+    """Context manager for database sessions with automatic cleanup."""
     db = SessionLocal()
     try:
         yield db

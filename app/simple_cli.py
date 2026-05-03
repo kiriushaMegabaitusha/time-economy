@@ -18,9 +18,6 @@ import json
 from datetime import datetime
 from typing import Optional
 
-# Add parent to path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from app.services import (
     get_session, get_dashboard_stats, get_member_balances,
     get_all_members, get_member_detail, create_member,

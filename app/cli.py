@@ -11,10 +11,6 @@ Usage:
     python -m app.cli tx create --from 1 --to 2 --hours 2.5 "Garden help"
 """
 
-import sys
-import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 import typer
 from typing import Optional
 from rich.console import Console

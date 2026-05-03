@@ -40,22 +40,22 @@
                     </td>
                     <td class="px-6 py-4">
                         {% if tx.status == 'pending' %}
-                        <form action="/transactions/{{ tx.id }}/complete-web" method="post" class="inline">
+                        <form action="/api/transactions/{{ tx.id }}/complete-web" method="post" class="inline">
                             <button type="submit" class="text-xs btn-primary btn-sm mr-2">Complete</button>
                         </form>
                         {% endif %}
                         {% if tx.status == 'disputed' %}
-                        <form action="/transactions/{{ tx.id }}/reopen-web" method="post" class="inline">
+                        <form action="/api/transactions/{{ tx.id }}/reopen-web" method="post" class="inline">
                             <button type="submit" class="text-xs bg-amber-50 text-amber-600 hover:bg-amber-100 px-2 py-1 rounded-lg font-medium transition-colors mr-2">Reopen</button>
                         </form>
                         {% endif %}
                         {% if tx.status != 'disputed' %}
-                        <form action="/transactions/{{ tx.id }}/dispute" method="post" class="inline">
+                        <form action="/api/transactions/{{ tx.id }}/dispute" method="post" class="inline">
                             <button type="submit" class="text-xs bg-red-50 text-red-600 hover:bg-red-100 px-2 py-1 rounded-lg font-medium transition-colors mr-2">Dispute</button>
                         </form>
                         {% endif %}
                         <button onclick="openEditTxModal({{ tx.id }}, {{ tx.hours }}, '{{ tx.service_description|replace("'", "\\'") }}', '{{ (tx.notes or '')|replace("'", "\\'") }}')" class="text-xs text-stone-500 hover:text-stone-700 px-2 py-1 rounded-lg transition-colors mr-2">Edit</button>
-                        <form action="/transactions/{{ tx.id }}/delete-web" method="post" class="inline" onsubmit="return confirm('Delete this transaction?');">
+                        <form action="/api/transactions/{{ tx.id }}/delete-web" method="post" class="inline" onsubmit="return confirm('Delete this transaction?');">
                             <button type="submit" class="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded-lg transition-colors">Delete</button>
                         </form>
                     </td>
@@ -69,7 +69,7 @@
 <div id="add-tx-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6">
         <h2 class="text-xl font-bold text-stone-900 mb-4">New Transaction</h2>
-        <form action="/transactions/web-create" method="post">
+        <form action="/api/transactions/web-create" method="post">
             <div class="space-y-4">
                 <div class="grid grid-cols-2 gap-4">
                     <div>
@@ -140,7 +140,7 @@
 
 <script>
 function openEditTxModal(id, hours, description, notes) {
-    document.getElementById('edit-tx-form').action = '/transactions/' + id + '/update-web';
+    document.getElementById('edit-tx-form').action = '/api/transactions/' + id + '/update-web';
     document.getElementById('edit-tx-hours').value = hours;
     document.getElementById('edit-tx-desc').value = description;
     document.getElementById('edit-tx-notes').value = notes;

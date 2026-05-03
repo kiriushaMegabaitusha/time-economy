@@ -1,14 +1,18 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Form
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
-from datetime import datetime
 from typing import List
 
 from .. import models, schemas
 from ..database import get_db
-from .members import calculate_balance
+from ..services import (
+    calculate_balance,
+    get_all_transactions, create_transaction,
+    complete_transaction, dispute_transaction, reopen_transaction,
+    update_transaction, delete_transaction
+)
 
-router = APIRouter(prefix="/transactions", tags=["transactions"])
+router = APIRouter(prefix="/api/transactions", tags=["transactions"])
 
 
 @router.get("/", response_model=List[schemas.Transaction])
@@ -18,21 +22,12 @@ def list_transactions(db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=schemas.Transaction)
-def create_transaction(transaction: schemas.TransactionCreate, db: Session = Depends(get_db)):
-    # Validate members exist
-    from_member = db.query(models.Member).filter(models.Member.id == transaction.from_member_id).first()
-    to_member = db.query(models.Member).filter(models.Member.id == transaction.to_member_id).first()
-    if not from_member or not to_member:
-        raise HTTPException(status_code=404, detail="Member not found")
-
-    db_transaction = models.Transaction(**transaction.model_dump(), status="pending")
-    db.add(db_transaction)
-    db.commit()
-    db.refresh(db_transaction)
-    return db_transaction
+def create_transaction_api(transaction: schemas.TransactionCreate, db: Session = Depends(get_db)):
+    return create_transaction(db, transaction.from_member_id, transaction.to_member_id,
+                              transaction.hours, transaction.service_description, transaction.notes)
 
 
-@router.post("/web-create")
+@router.post("/web-create", include_in_schema=False)
 def create_transaction_web(
     request: Request,
     from_member_id: int = Form(...),
@@ -42,69 +37,42 @@ def create_transaction_web(
     notes: str = Form(None),
     db: Session = Depends(get_db)
 ):
-    db_transaction = models.Transaction(
-        from_member_id=from_member_id,
-        to_member_id=to_member_id,
-        hours=hours,
-        service_description=service_description,
-        notes=notes,
-        status="pending"
-    )
-    db.add(db_transaction)
-    db.commit()
-    db.refresh(db_transaction)
+    create_transaction(db, from_member_id, to_member_id, hours, service_description, notes)
     return RedirectResponse(url="/transactions", status_code=303)
 
 
 @router.post("/{transaction_id}/complete")
-def complete_transaction(transaction_id: int, db: Session = Depends(get_db)):
-    transaction = db.query(models.Transaction).filter(models.Transaction.id == transaction_id).first()
-    if not transaction:
+def complete_transaction_api(transaction_id: int, db: Session = Depends(get_db)):
+    tx = complete_transaction(db, transaction_id)
+    if not tx:
         raise HTTPException(status_code=404, detail="Transaction not found")
-
-    transaction.status = "completed"
-    transaction.completed_at = datetime.utcnow()
-    db.commit()
-    db.refresh(transaction)
-    return transaction
+    return tx
 
 
-@router.post("/{transaction_id}/complete-web")
+@router.post("/{transaction_id}/complete-web", include_in_schema=False)
 def complete_transaction_web(transaction_id: int, db: Session = Depends(get_db)):
-    transaction = db.query(models.Transaction).filter(models.Transaction.id == transaction_id).first()
-    if transaction:
-        transaction.status = "completed"
-        transaction.completed_at = datetime.utcnow()
-        db.commit()
+    complete_transaction(db, transaction_id)
     return RedirectResponse(url="/transactions", status_code=303)
 
 
 @router.post("/{transaction_id}/dispute")
-def dispute_transaction(transaction_id: int, db: Session = Depends(get_db)):
-    transaction = db.query(models.Transaction).filter(models.Transaction.id == transaction_id).first()
-    if not transaction:
+def dispute_transaction_api(transaction_id: int, db: Session = Depends(get_db)):
+    tx = dispute_transaction(db, transaction_id)
+    if not tx:
         raise HTTPException(status_code=404, detail="Transaction not found")
-
-    transaction.status = "disputed"
-    db.commit()
-    db.refresh(transaction)
-    return transaction
+    return tx
 
 
 @router.put("/{transaction_id}", response_model=schemas.Transaction)
-def update_transaction(transaction_id: int, transaction_update: schemas.TransactionCreate, db: Session = Depends(get_db)):
-    transaction = db.query(models.Transaction).filter(models.Transaction.id == transaction_id).first()
-    if not transaction:
+def update_transaction_api(transaction_id: int, transaction_update: schemas.TransactionCreate, db: Session = Depends(get_db)):
+    tx = update_transaction(db, transaction_id, transaction_update.hours,
+                            transaction_update.service_description, transaction_update.notes)
+    if not tx:
         raise HTTPException(status_code=404, detail="Transaction not found")
-    transaction.hours = transaction_update.hours
-    transaction.service_description = transaction_update.service_description
-    transaction.notes = transaction_update.notes
-    db.commit()
-    db.refresh(transaction)
-    return transaction
+    return tx
 
 
-@router.post("/{transaction_id}/update-web")
+@router.post("/{transaction_id}/update-web", include_in_schema=False)
 def update_transaction_web(
     transaction_id: int,
     hours: float = Form(None),
@@ -112,54 +80,32 @@ def update_transaction_web(
     notes: str = Form(None),
     db: Session = Depends(get_db)
 ):
-    transaction = db.query(models.Transaction).filter(models.Transaction.id == transaction_id).first()
-    if transaction:
-        if hours is not None:
-            transaction.hours = hours
-        if service_description:
-            transaction.service_description = service_description
-        if notes is not None:
-            transaction.notes = notes
-        db.commit()
+    update_transaction(db, transaction_id, hours, service_description, notes)
     return RedirectResponse(url="/transactions", status_code=303)
 
 
 @router.post("/{transaction_id}/reopen")
-def reopen_transaction(transaction_id: int, db: Session = Depends(get_db)):
-    transaction = db.query(models.Transaction).filter(models.Transaction.id == transaction_id).first()
-    if not transaction:
+def reopen_transaction_api(transaction_id: int, db: Session = Depends(get_db)):
+    tx = reopen_transaction(db, transaction_id)
+    if not tx:
         raise HTTPException(status_code=404, detail="Transaction not found")
-    transaction.status = "pending"
-    transaction.completed_at = None
-    db.commit()
-    db.refresh(transaction)
-    return transaction
+    return tx
 
 
-@router.post("/{transaction_id}/reopen-web")
+@router.post("/{transaction_id}/reopen-web", include_in_schema=False)
 def reopen_transaction_web(transaction_id: int, db: Session = Depends(get_db)):
-    transaction = db.query(models.Transaction).filter(models.Transaction.id == transaction_id).first()
-    if transaction:
-        transaction.status = "pending"
-        transaction.completed_at = None
-        db.commit()
+    reopen_transaction(db, transaction_id)
     return RedirectResponse(url="/transactions", status_code=303)
 
 
 @router.delete("/{transaction_id}")
-def delete_transaction(transaction_id: int, db: Session = Depends(get_db)):
-    transaction = db.query(models.Transaction).filter(models.Transaction.id == transaction_id).first()
-    if not transaction:
+def delete_transaction_api(transaction_id: int, db: Session = Depends(get_db)):
+    if not delete_transaction(db, transaction_id):
         raise HTTPException(status_code=404, detail="Transaction not found")
-    db.delete(transaction)
-    db.commit()
     return {"message": "Transaction deleted"}
 
 
-@router.post("/{transaction_id}/delete-web")
+@router.post("/{transaction_id}/delete-web", include_in_schema=False)
 def delete_transaction_web(transaction_id: int, db: Session = Depends(get_db)):
-    transaction = db.query(models.Transaction).filter(models.Transaction.id == transaction_id).first()
-    if transaction:
-        db.delete(transaction)
-        db.commit()
+    delete_transaction(db, transaction_id)
     return RedirectResponse(url="/transactions", status_code=303)

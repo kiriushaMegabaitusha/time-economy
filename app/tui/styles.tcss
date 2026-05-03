@@ -1,17 +1,25 @@
-/* Time Economy TUI Styles */
+/* Time Economy TUI Styles - Universal Design System */
 
+/* ============================================
+   COLOR SYSTEM - Semantic & High Contrast
+   ============================================
+   All colors are paired with text/icon indicators
+   to ensure information is accessible without color.
+   Never use color ALONE to convey meaning.
+   ============================================ */
+
+/* Screen base */
 Screen {
     align: center middle;
 }
 
-#main-container {
-    layout: vertical;
-    height: 100%;
-}
+/* ============================================
+   LAYOUT STRUCTURE
+   ============================================ */
 
 #header {
     height: 3;
-    background: $surface-darken-1;
+    background: $primary;
     color: $text;
     content-align: center middle;
     text-style: bold;
@@ -19,184 +27,511 @@ Screen {
 
 #nav-bar {
     height: 1;
-    background: $surface;
+    background: $surface-darken-1;
     color: $text-muted;
-    content-align: center middle;
+    content-align: left middle;
+    text-style: bold;
 }
 
 #content {
     height: 1fr;
-    padding: 1;
+    padding: 1 2;
 }
 
 #footer {
     height: 1;
-    background: $surface-darken-1;
+    background: $surface-darken-2;
+    color: $text;
+    content-align: left middle;
+    border-top: solid $primary-darken-1;
+}
+
+/* ============================================
+   NAVIGATION - Global Bar
+   ============================================ */
+
+.nav-hint {
     color: $text-muted;
-    content-align: center middle;
 }
 
-/* Dashboard */
-#dashboard-grid {
-    layout: grid;
-    grid-size: 2 3;
-    grid-gutter: 1;
-    height: 100%;
-}
-
-.stat-card {
-    background: $surface-darken-1;
-    border: solid $primary;
-    padding: 1;
-    text-align: center;
-}
-
-.stat-value {
+.nav-key {
+    color: $primary-lighten-1;
     text-style: bold;
-    color: $primary-lighten-2;
-    text-align: center;
 }
 
-.stat-label {
-    color: $text-muted;
-    text-align: center;
-}
+/* ============================================
+   PANELS - Consistent Card Style
+   ============================================ */
 
-#alerts-panel {
-    background: $surface-darken-1;
-    border: solid $warning;
+.panel {
+    background: $surface;
+    border: solid $border;
     padding: 1;
 }
 
-#recent-panel {
-    background: $surface-darken-1;
+.panel-title {
+    text-style: bold;
+    color: $primary-lighten-1;
+    border-bottom: solid $border;
+    padding-bottom: 1;
+    margin-bottom: 1;
+}
+
+.panel-focused {
     border: solid $primary;
-    padding: 1;
 }
 
-/* Data Tables */
+/* ============================================
+   DATA TABLES
+   ============================================ */
+
 DataTable {
     height: 100%;
-    border: solid $primary-darken-2;
+    border: solid $border;
+    background: $surface;
 }
 
 DataTable:focus {
     border: solid $primary;
 }
 
-/* Forms */
-.modal-form {
-    background: $surface;
-    border: thick $primary;
-    padding: 1 2;
-    width: 60;
-    height: auto;
+DataTable > .datatable--cursor {
+    background: $primary-darken-2;
 }
 
-.modal-form-title {
+DataTable:focus > .datatable--cursor {
+    background: $primary-darken-1;
+}
+
+/* Table headers */
+DataTable .datatable--header-cell {
+    background: $surface-darken-1;
     text-style: bold;
-    color: $primary-lighten-2;
-    text-align: center;
-    height: 1;
-    margin-bottom: 1;
+    color: $primary-lighten-1;
 }
 
-Form Input {
-    margin-bottom: 1;
-}
+/* ============================================
+   BUTTONS - Universal Design
+   ============================================ */
 
-Form Select {
-    margin-bottom: 1;
-}
-
-/* Buttons */
 Button {
     margin: 0 1;
+    min-width: 12;
+    border: solid $border;
+}
+
+Button:focus {
+    border: solid $primary-lighten-1;
+    text-style: bold;
 }
 
 Button.primary {
     background: $primary;
+    text-style: bold;
 }
 
 Button.success {
-    background: $success;
+    background: $success-darken-1;
+    text-style: bold;
+}
+
+Button.warning {
+    background: $warning-darken-1;
+    text-style: bold;
 }
 
 Button.error {
-    background: $error;
+    background: $error-darken-1;
+    text-style: bold;
 }
 
-/* TabbedContent */
+Button.danger-confirm {
+    background: $error;
+    text-style: bold;
+}
+
+/* ============================================
+   STATUS INDICATORS - Accessible Format
+   ============================================
+   Format: [ICON] status-text
+   Always use icon + text, never color alone.
+   Status is rendered in Python code with icons.
+   ============================================ */
+
+.status-pending {
+    color: $warning-lighten-1;
+    text-style: bold;
+}
+
+.status-completed {
+    color: $success-lighten-1;
+    text-style: bold;
+}
+
+.status-disputed {
+    color: $error-lighten-1;
+    text-style: bold;
+}
+
+.status-open {
+    color: $success-lighten-1;
+    text-style: bold;
+}
+
+.status-fulfilled {
+    color: $primary-lighten-1;
+    text-style: bold;
+}
+
+.status-closed {
+    color: $text-muted;
+    text-style: bold;
+}
+
+.status-proposed {
+    color: $warning-lighten-1;
+    text-style: bold;
+}
+
+.status-approved {
+    color: $success-lighten-1;
+    text-style: bold;
+}
+
+.status-rejected {
+    color: $error-lighten-1;
+    text-style: bold;
+}
+
+.status-implemented {
+    color: $primary-lighten-1;
+    text-style: bold;
+}
+
+/* ============================================
+   MODAL FORMS - Consistent Pattern
+   ============================================ */
+
+.modal-form {
+    background: $surface;
+    border: thick $primary;
+    padding: 2 3;
+    width: 70;
+    height: auto;
+    min-height: 20;
+}
+
+.modal-form-title {
+    text-style: bold;
+    color: $primary-lighten-1;
+    text-align: center;
+    height: 1;
+    margin-bottom: 2;
+    border-bottom: solid $border;
+}
+
+.modal-form Label {
+    color: $text-muted;
+    margin-bottom: 0;
+}
+
+.modal-form Input {
+    margin-bottom: 1;
+}
+
+.modal-form Select {
+    margin-bottom: 1;
+}
+
+.modal-form-actions {
+    height: auto;
+    align: center middle;
+    padding-top: 1;
+    margin-top: 1;
+    border-top: solid $border;
+}
+
+/* Confirmation dialogs */
+.confirm-warning {
+    color: $warning-lighten-1;
+    text-style: bold;
+}
+
+.confirm-danger {
+    color: $error-lighten-1;
+    text-style: bold;
+}
+
+/* ============================================
+   FORMS - Input Styling
+   ============================================ */
+
+Input {
+    border: solid $border;
+    background: $surface-darken-1;
+}
+
+Input:focus {
+    border: solid $primary;
+}
+
+Select {
+    border: solid $border;
+    background: $surface-darken-1;
+}
+
+Select:focus {
+    border: solid $primary;
+}
+
+/* ============================================
+   DASHBOARD - Stat Cards Grid
+   ============================================ */
+
+#dashboard-container {
+    height: 100%;
+}
+
+#dashboard-grid {
+    layout: grid;
+    grid-size: 3 2;
+    grid-gutter: 1 1;
+    height: auto;
+    padding: 1;
+}
+
+.stat-card {
+    background: $surface;
+    border: solid $border;
+    padding: 2 1;
+    height: auto;
+}
+
+.stat-card:focus-within {
+    border: solid $primary;
+}
+
+.stat-value {
+    text-style: bold;
+    color: $primary-lighten-1;
+    text-align: center;
+    text-style: bold;
+}
+
+.stat-label {
+    color: $text-muted;
+    text-align: center;
+    text-style: bold;
+}
+
+/* Dashboard panels */
+#alerts-panel {
+    background: $surface;
+    border: solid $warning-darken-1;
+    padding: 1;
+}
+
+#alerts-panel:focus-within {
+    border: solid $warning;
+}
+
+#recent-panel {
+    background: $surface;
+    border: solid $border;
+    padding: 1;
+}
+
+#recent-panel:focus-within {
+    border: solid $primary;
+}
+
+/* Alert items - NOT color alone */
+.alert-item {
+    color: $text;
+    padding: 0 1;
+}
+
+.alert-hoarding {
+    color: $warning-lighten-1;
+}
+
+.alert-deficit {
+    color: $error-lighten-1;
+}
+
+.alert-info {
+    color: $primary-lighten-1;
+}
+
+/* ============================================
+   TABBED CONTENT
+   ============================================ */
+
 TabbedContent {
     height: 100%;
 }
 
 Tabs {
     background: $surface-darken-1;
+    border-bottom: solid $border;
 }
 
-/* ListView */
+Tab {
+    background: $surface-darken-1;
+}
+
+Tab:focus {
+    background: $surface;
+    border-bottom: solid $primary;
+}
+
+Tab:hover {
+    background: $surface;
+}
+
+/* ============================================
+   LIST VIEW
+   ============================================ */
+
 ListView {
-    border: solid $primary-darken-2;
+    border: solid $border;
     height: 100%;
+    background: $surface;
 }
 
 ListView:focus {
     border: solid $primary;
 }
 
-/* Scrollable containers */
+ListItem {
+    padding: 0 1;
+}
+
+ListItem:focus {
+    background: $primary-darken-2;
+}
+
+/* ============================================
+   SCROLLABLE CONTAINERS
+   ============================================ */
+
 VerticalScroll {
     height: 100%;
-    border: solid $surface-darken-2;
+    border: solid $border;
+    background: $surface;
 }
 
-/* Alert items */
-.alert-hoarding {
-    color: $warning;
+VerticalScroll:focus {
+    border: solid $primary;
 }
 
-.alert-deficit {
-    color: $error;
+/* ============================================
+   ACTION BARS - Consistent Pattern
+   ============================================ */
+
+.action-bar {
+    height: auto;
+    padding: 1;
+    background: $surface-darken-1;
+    border-top: solid $border;
 }
 
-/* Status badges */
-.status-pending {
-    color: $warning;
+.action-bar Button {
+    margin: 0 1;
 }
 
-.status-completed {
-    color: $success;
+/* ============================================
+   DETAIL PANELS
+   ============================================ */
+
+.detail-panel {
+    background: $surface;
+    border: solid $border;
+    padding: 1 2;
 }
 
-.status-disputed {
-    color: $error;
+.detail-panel:focus-within {
+    border: solid $primary;
 }
 
-.status-open {
-    color: $success;
-}
-
-.status-fulfilled {
-    color: $primary;
-}
-
-.status-closed {
+.detail-label {
     color: $text-muted;
+    text-style: bold;
 }
 
-.status-proposed {
-    color: $warning;
+.detail-value {
+    color: $text;
 }
 
-.status-approved {
-    color: $success;
+/* ============================================
+   SPLIT VIEWS - Two Column Layout
+   ============================================ */
+
+.split-view {
+    layout: horizontal;
+    height: 1fr;
 }
 
-.status-rejected {
-    color: $error;
+.split-left {
+    width: 40%;
+    height: 100%;
+    border-right: solid $border;
+    padding-right: 1;
 }
 
-.status-implemented {
-    color: $primary;
+.split-right {
+    width: 60%;
+    height: 100%;
+    padding-left: 1;
+}
+
+/* ============================================
+   FOCUS STATES - Universal Design
+   ============================================ */
+
+Widget:focus {
+    border: solid $primary;
+}
+
+/* ============================================
+   SCREEN CONTEXT
+   ============================================ */
+
+.screen-context {
+    color: $text-muted;
+    text-style: bold;
+}
+
+.help-text {
+    color: $text-muted;
+    text-style: italic;
+}
+
+/* ============================================
+   HEIGHT CONSTRAINTS FOR SCREENS
+   ============================================ */
+
+.screen-container {
+    height: 100%;
+}
+
+.content-area {
+    height: 1fr;
+}
+
+.bottom-bar {
+    height: auto;
+    min-height: 3;
+}
+
+/* ============================================
+   DATA TABLE FOCUS BEHAVIOR
+   ============================================ */
+
+DataTable {
+    border: solid $primary-darken-1;
+}
+
+DataTable:focus {
+    border: solid $primary;
 }

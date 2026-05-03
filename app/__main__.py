@@ -1,13 +1,8 @@
 """Entry point for running the application."""
 
-import sys
-import os
-
-# Add project root to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 
 def main():
+    import sys
     if len(sys.argv) < 2:
         print("Usage: python -m app <command>")
         print()

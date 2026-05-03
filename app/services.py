@@ -7,6 +7,7 @@ from typing import List, Optional, Dict, Any
 
 from app.models import Base, Member, Skill, SkillWant, Transaction, Need, GovernanceLog
 from app.database import SessionLocal, get_db
+from app.config import EconomyConfig
 
 
 def get_session() -> Session:
@@ -75,24 +76,25 @@ def get_dashboard_stats(db: Session) -> Dict[str, Any]:
     skills = db.query(Skill.name, func.count(Skill.id).label("count")).group_by(
         Skill.name
     ).order_by(func.count(Skill.id).desc()).limit(10).all()
-    top_skills = [{"name": s.name, "count": s.count} for s in skills]
+    top_skills = [{"name": s[0], "count": s[1]} for s in skills]
 
     # Algedonic alerts
     alerts = []
     for mb in member_balances:
-        if mb["balance"] > 20:
+        status = EconomyConfig.get_balance_status(mb["balance"])
+        if status == "hoarding":
             alerts.append({
                 "type": "hoarding",
                 "member": mb["name"],
                 "balance": mb["balance"],
-                "message": f"{mb['name']} has {mb['balance']} credits. Encourage spending to maintain liquidity."
+                "message": EconomyConfig.get_alert_message(mb["name"], mb["balance"], "hoarding")
             })
-        elif mb["balance"] < -10:
+        elif status == "deficit":
             alerts.append({
                 "type": "deficit",
                 "member": mb["name"],
                 "balance": mb["balance"],
-                "message": f"{mb['name']} has a deficit of {abs(mb['balance'])} credits. Community check-in recommended."
+                "message": EconomyConfig.get_alert_message(mb["name"], mb["balance"], "deficit")
             })
 
     # Transaction velocity (last 30 days)

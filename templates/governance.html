@@ -44,20 +44,20 @@
         {% endif %}
 
         <div class="flex items-center gap-4">
-            <form action="/governance/{{ entry.id }}/vote-web" method="post" class="inline">
+            <form action="/api/governance/{{ entry.id }}/vote-web" method="post" class="inline">
                 <input type="hidden" name="vote" value="for">
                 <button type="submit" class="text-sm text-teal-700 hover:bg-teal-50 px-3 py-1 rounded-lg transition-colors">
                     &#x1F44D; {{ entry.vote_for }}
                 </button>
             </form>
-            <form action="/governance/{{ entry.id }}/vote-web" method="post" class="inline">
+            <form action="/api/governance/{{ entry.id }}/vote-web" method="post" class="inline">
                 <input type="hidden" name="vote" value="against">
                 <button type="submit" class="text-sm text-stone-500 hover:bg-stone-50 px-3 py-1 rounded-lg transition-colors">
                     &#x1F44E; {{ entry.vote_against }}
                 </button>
             </form>
             <button onclick="openEditGovModal({{ entry.id }}, '{{ entry.title|replace("'", "\\'") }}', '{{ entry.description|replace("'", "\\'") }}', '{{ entry.decision_type }}')" class="text-sm text-stone-500 hover:text-stone-700 px-3 py-1 rounded-lg transition-colors">Edit</button>
-            <form action="/governance/{{ entry.id }}/delete-web" method="post" class="inline" onsubmit="return confirm('Delete this governance entry?');">
+            <form action="/api/governance/{{ entry.id }}/delete-web" method="post" class="inline" onsubmit="return confirm('Delete this governance entry?');">
                 <button type="submit" class="text-sm text-red-400 hover:text-red-600 px-3 py-1 rounded-lg transition-colors">Delete</button>
             </form>
         </div>
@@ -68,7 +68,7 @@
 <div id="add-gov-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6">
         <h2 class="text-xl font-bold text-stone-900 mb-4">New Governance Entry</h2>
-        <form action="/governance/web-create" method="post">
+        <form action="/api/governance/web-create" method="post">
             <div class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-stone-700 mb-1">Decision Type</label>
@@ -138,7 +138,7 @@
 
 <script>
 function openEditGovModal(id, title, description, decisionType) {
-    document.getElementById('edit-gov-form').action = '/governance/' + id + '/update-web';
+    document.getElementById('edit-gov-form').action = '/api/governance/' + id + '/update-web';
     document.getElementById('edit-gov-title').value = title;
     document.getElementById('edit-gov-desc').value = description;
     document.getElementById('edit-gov-type').value = decisionType;

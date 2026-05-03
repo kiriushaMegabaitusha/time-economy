@@ -5,8 +5,12 @@ from typing import List
 
 from .. import models, schemas
 from ..database import get_db
+from ..services import (
+    get_all_governance, create_governance, vote_governance,
+    update_governance_status, update_governance, delete_governance
+)
 
-router = APIRouter(prefix="/governance", tags=["governance"])
+router = APIRouter(prefix="/api/governance", tags=["governance"])
 
 
 @router.get("/", response_model=List[schemas.GovernanceLog])
@@ -16,15 +20,11 @@ def list_governance(db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=schemas.GovernanceLog)
-def create_governance(entry: schemas.GovernanceLogCreate, member_id: int = None, db: Session = Depends(get_db)):
-    db_entry = models.GovernanceLog(member_id=member_id, **entry.model_dump())
-    db.add(db_entry)
-    db.commit()
-    db.refresh(db_entry)
-    return db_entry
+def create_governance_api(entry: schemas.GovernanceLogCreate, member_id: int = None, db: Session = Depends(get_db)):
+    return create_governance(db, entry.title, entry.description, entry.decision_type, member_id)
 
 
-@router.post("/web-create")
+@router.post("/web-create", include_in_schema=False)
 def create_governance_web(
     request: Request,
     title: str = Form(...),
@@ -33,75 +33,43 @@ def create_governance_web(
     member_id: int = Form(None),
     db: Session = Depends(get_db)
 ):
-    db_entry = models.GovernanceLog(
-        title=title,
-        description=description,
-        decision_type=decision_type,
-        member_id=member_id,
-        status="proposed"
-    )
-    db.add(db_entry)
-    db.commit()
-    db.refresh(db_entry)
+    create_governance(db, title, description, decision_type, member_id)
     return RedirectResponse(url="/governance", status_code=303)
 
 
 @router.post("/{entry_id}/vote")
-def vote_governance(entry_id: int, vote: str, db: Session = Depends(get_db)):
-    entry = db.query(models.GovernanceLog).filter(models.GovernanceLog.id == entry_id).first()
+def vote_governance_api(entry_id: int, vote: str, db: Session = Depends(get_db)):
+    if vote not in ("for", "against"):
+        raise HTTPException(status_code=400, detail="Invalid vote")
+    entry = vote_governance(db, entry_id, vote)
     if not entry:
         raise HTTPException(status_code=404, detail="Entry not found")
-
-    if vote == "for":
-        entry.vote_for += 1
-    elif vote == "against":
-        entry.vote_against += 1
-    else:
-        raise HTTPException(status_code=400, detail="Invalid vote")
-
-    db.commit()
-    db.refresh(entry)
     return entry
 
 
-@router.post("/{entry_id}/vote-web")
+@router.post("/{entry_id}/vote-web", include_in_schema=False)
 def vote_governance_web(entry_id: int, vote: str = Form(...), db: Session = Depends(get_db)):
-    entry = db.query(models.GovernanceLog).filter(models.GovernanceLog.id == entry_id).first()
-    if entry:
-        if vote == "for":
-            entry.vote_for += 1
-        elif vote == "against":
-            entry.vote_against += 1
-        db.commit()
+    vote_governance(db, entry_id, vote)
     return RedirectResponse(url="/governance", status_code=303)
 
 
 @router.post("/{entry_id}/status")
-def update_status(entry_id: int, status: str, db: Session = Depends(get_db)):
-    entry = db.query(models.GovernanceLog).filter(models.GovernanceLog.id == entry_id).first()
+def update_status_api(entry_id: int, status: str, db: Session = Depends(get_db)):
+    entry = update_governance_status(db, entry_id, status)
     if not entry:
         raise HTTPException(status_code=404, detail="Entry not found")
-
-    entry.status = status
-    db.commit()
-    db.refresh(entry)
     return entry
 
 
 @router.put("/{entry_id}", response_model=schemas.GovernanceLog)
-def update_governance(entry_id: int, entry_update: schemas.GovernanceLogCreate, db: Session = Depends(get_db)):
-    entry = db.query(models.GovernanceLog).filter(models.GovernanceLog.id == entry_id).first()
+def update_governance_api(entry_id: int, entry_update: schemas.GovernanceLogCreate, db: Session = Depends(get_db)):
+    entry = update_governance(db, entry_id, entry_update.title, entry_update.description, entry_update.decision_type)
     if not entry:
         raise HTTPException(status_code=404, detail="Entry not found")
-    entry.title = entry_update.title
-    entry.description = entry_update.description
-    entry.decision_type = entry_update.decision_type
-    db.commit()
-    db.refresh(entry)
     return entry
 
 
-@router.post("/{entry_id}/update-web")
+@router.post("/{entry_id}/update-web", include_in_schema=False)
 def update_governance_web(
     entry_id: int,
     title: str = Form(None),
@@ -109,32 +77,18 @@ def update_governance_web(
     decision_type: str = Form(None),
     db: Session = Depends(get_db)
 ):
-    entry = db.query(models.GovernanceLog).filter(models.GovernanceLog.id == entry_id).first()
-    if entry:
-        if title:
-            entry.title = title
-        if description:
-            entry.description = description
-        if decision_type:
-            entry.decision_type = decision_type
-        db.commit()
+    update_governance(db, entry_id, title, description, decision_type)
     return RedirectResponse(url="/governance", status_code=303)
 
 
 @router.delete("/{entry_id}")
-def delete_governance(entry_id: int, db: Session = Depends(get_db)):
-    entry = db.query(models.GovernanceLog).filter(models.GovernanceLog.id == entry_id).first()
-    if not entry:
+def delete_governance_api(entry_id: int, db: Session = Depends(get_db)):
+    if not delete_governance(db, entry_id):
         raise HTTPException(status_code=404, detail="Entry not found")
-    db.delete(entry)
-    db.commit()
     return {"message": "Governance entry deleted"}
 
 
-@router.post("/{entry_id}/delete-web")
+@router.post("/{entry_id}/delete-web", include_in_schema=False)
 def delete_governance_web(entry_id: int, db: Session = Depends(get_db)):
-    entry = db.query(models.GovernanceLog).filter(models.GovernanceLog.id == entry_id).first()
-    if entry:
-        db.delete(entry)
-        db.commit()
+    delete_governance(db, entry_id)
     return RedirectResponse(url="/governance", status_code=303)

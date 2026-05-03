@@ -38,19 +38,19 @@
 
         <div class="flex flex-wrap gap-2">
             {% if need.status == 'open' %}
-            <form action="/needs/{{ need.id }}/fulfill-web" method="post" class="flex-1">
+            <form action="/api/needs/{{ need.id }}/fulfill-web" method="post" class="flex-1">
                 <button type="submit" class="w-full py-2 btn-secondary text-center">Fulfill</button>
             </form>
-            <form action="/needs/{{ need.id }}/close" method="post" class="flex-1">
+            <form action="/api/needs/{{ need.id }}/close" method="post" class="flex-1">
                 <button type="submit" class="w-full py-2 text-sm text-stone-600 hover:bg-stone-50 border border-stone-200 rounded-lg transition-colors">Close</button>
             </form>
             {% elif need.status in ['fulfilled', 'closed'] %}
-            <form action="/needs/{{ need.id }}/reopen-web" method="post" class="flex-1">
+            <form action="/api/needs/{{ need.id }}/reopen-web" method="post" class="flex-1">
                 <button type="submit" class="w-full py-2 text-sm text-amber-600 hover:bg-amber-50 border border-amber-200 rounded-lg transition-colors">Reopen</button>
             </form>
             {% endif %}
             <button onclick="openEditNeedModal({{ need.id }}, '{{ need.title|replace("'", "\\'") }}', '{{ need.description|replace("'", "\\'") }}', {{ need.hours_estimated }})" class="px-3 py-2 text-sm text-stone-600 hover:text-stone-800 border border-stone-200 rounded-lg hover:bg-stone-50 transition-colors">Edit</button>
-            <form action="/needs/{{ need.id }}/delete-web" method="post" class="inline" onsubmit="return confirm('Delete this need?');">
+            <form action="/api/needs/{{ need.id }}/delete-web" method="post" class="inline" onsubmit="return confirm('Delete this need?');">
                 <button type="submit" class="px-3 py-2 text-sm text-red-400 hover:text-red-600 border border-stone-200 rounded-lg hover:bg-red-50 transition-colors">Delete</button>
             </form>
         </div>
@@ -61,7 +61,7 @@
 <div id="add-need-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6">
         <h2 class="text-xl font-bold text-stone-900 mb-4">Post a Need</h2>
-        <form action="/needs/web-create" method="post">
+        <form action="/api/needs/web-create" method="post">
             <div class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-stone-700 mb-1">Requested By</label>
@@ -121,7 +121,7 @@
 
 <script>
 function openEditNeedModal(id, title, description, hours) {
-    document.getElementById('edit-need-form').action = '/needs/' + id + '/update-web';
+    document.getElementById('edit-need-form').action = '/api/needs/' + id + '/update-web';
     document.getElementById('edit-need-title').value = title;
     document.getElementById('edit-need-desc').value = description;
     document.getElementById('edit-need-hours').value = hours;
